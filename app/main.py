@@ -46,103 +46,183 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Custom CSS — minimal, premium red / black / white
+# =========================================================================
+# PREMIUM CSS — Animated background, glassmorphism, visual depth
+# =========================================================================
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
-
     html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
-    .stApp { background: #0a0a0a; }
 
-    /* Hide default sidebar toggle */
+    /* Hide sidebar toggle */
     [data-testid="stSidebarCollapsedControl"] { display: none; }
 
-    /* === Header === */
+    /* ===== ANIMATED BACKGROUND ===== */
+    .stApp {
+        background: #050505;
+        background-image:
+            radial-gradient(ellipse 80% 50% at 50% -20%, rgba(220,38,38,0.15), transparent),
+            radial-gradient(ellipse 60% 40% at 80% 100%, rgba(220,38,38,0.08), transparent),
+            radial-gradient(circle at 20% 80%, rgba(255,255,255,0.02), transparent);
+    }
+    /* Dot grid overlay */
+    .stApp::before {
+        content: '';
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
+        background-size: 28px 28px;
+        pointer-events: none; z-index: 0;
+    }
+
+    /* ===== HEADER ===== */
+    .hero-container {
+        text-align: center; padding: 40px 0 10px 0; position: relative; z-index: 1;
+    }
     .main-header {
-        font-size: 3.4rem; font-weight: 800; letter-spacing: -1.5px;
-        color: #FFFFFF; text-align: center;
-        margin-bottom: 0px; line-height: 1.1;
+        font-size: 3.8rem; font-weight: 800; letter-spacing: -2px;
+        color: #FFFFFF; margin-bottom: 6px; line-height: 1.05;
     }
-    .main-header span { color: #DC2626; }
+    .main-header span {
+        background: linear-gradient(135deg, #DC2626, #FF6B6B);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
     .sub-header {
-        font-size: 1.05rem; color: #737373; text-align: center;
-        margin-bottom: 36px; letter-spacing: 0.5px; font-weight: 300;
+        font-size: 1.05rem; color: #525252; text-align: center;
+        margin-bottom: 8px; letter-spacing: 0.6px; font-weight: 300;
+    }
+    .hero-badge {
+        display: inline-block; background: rgba(220,38,38,0.08);
+        border: 1px solid rgba(220,38,38,0.2); border-radius: 20px;
+        padding: 6px 16px; color: #EF4444; font-size: 0.78rem;
+        font-weight: 600; letter-spacing: 1px; text-transform: uppercase;
+        margin-bottom: 28px;
     }
 
-    /* === Section titles === */
+    /* ===== GLASSMORPHISM SECTION TITLES ===== */
     .section-title {
-        font-size: 1.45rem; font-weight: 700; color: #FAFAFA;
-        border-left: 3px solid #DC2626; border-radius: 0 8px 8px 0;
-        padding: 12px 18px; margin-top: 32px; margin-bottom: 16px;
-        background: rgba(220,38,38,0.06);
+        font-size: 1.4rem; font-weight: 700; color: #F5F5F5;
+        border-left: 3px solid #DC2626;
+        border-radius: 0 10px 10px 0;
+        padding: 14px 20px; margin-top: 32px; margin-bottom: 16px;
+        background: linear-gradient(135deg, rgba(220,38,38,0.08), rgba(255,255,255,0.02));
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
     }
 
-    /* === Metric cards === */
+    /* ===== METRIC CARDS with animated glow border ===== */
     [data-testid="stMetric"] {
-        background: #111111; border: 1px solid #1f1f1f;
-        border-radius: 12px; padding: 16px;
-        transition: all 0.25s ease;
+        background: rgba(15,15,15,0.8) !important;
+        border: 1px solid rgba(255,255,255,0.06);
+        border-radius: 14px; padding: 18px;
+        backdrop-filter: blur(8px);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative; overflow: hidden;
+    }
+    [data-testid="stMetric"]::after {
+        content: ''; position: absolute; bottom: 0; left: 0;
+        width: 100%; height: 2px;
+        background: linear-gradient(90deg, transparent, #DC2626, transparent);
+        opacity: 0; transition: opacity 0.3s ease;
     }
     [data-testid="stMetric"]:hover {
-        border-color: #DC2626; transform: translateY(-2px);
-        box-shadow: 0 8px 24px rgba(220,38,38,0.1);
+        border-color: rgba(220,38,38,0.3);
+        transform: translateY(-3px);
+        box-shadow: 0 12px 32px rgba(220,38,38,0.12);
     }
-    [data-testid="stMetricValue"] { color: #FFFFFF !important; }
-    [data-testid="stMetricLabel"] { color: #A3A3A3 !important; }
+    [data-testid="stMetric"]:hover::after { opacity: 1; }
+    [data-testid="stMetricValue"] { color: #FFFFFF !important; font-weight: 700 !important; }
+    [data-testid="stMetricLabel"] { color: #737373 !important; font-size: 0.85rem !important; text-transform: uppercase; letter-spacing: 0.5px; }
 
-    /* === Buttons === */
+    /* ===== BUTTONS ===== */
     .stButton > button {
-        background: #DC2626 !important; color: #FFFFFF !important;
-        border: none !important; border-radius: 10px !important;
-        font-weight: 700 !important; letter-spacing: 0.5px;
-        transition: all 0.25s ease !important; padding: 0.6rem 2rem !important;
+        background: linear-gradient(135deg, #DC2626, #B91C1C) !important;
+        color: #FFFFFF !important; border: none !important;
+        border-radius: 10px !important; font-weight: 700 !important;
+        letter-spacing: 0.5px; padding: 0.65rem 2.2rem !important;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        box-shadow: 0 4px 12px rgba(220,38,38,0.2) !important;
     }
     .stButton > button:hover {
-        background: #B91C1C !important;
-        box-shadow: 0 6px 20px rgba(220,38,38,0.3) !important;
-        transform: translateY(-1px) !important;
+        background: linear-gradient(135deg, #EF4444, #DC2626) !important;
+        box-shadow: 0 8px 28px rgba(220,38,38,0.35) !important;
+        transform: translateY(-2px) !important;
     }
 
-    /* === Download button === */
+    /* ===== DOWNLOAD BUTTON ===== */
     .stDownloadButton > button {
-        background: #171717 !important; color: #FAFAFA !important;
-        border: 1px solid #DC2626 !important; border-radius: 10px !important;
-        font-weight: 600 !important; transition: all 0.25s ease !important;
+        background: rgba(15,15,15,0.9) !important; color: #FAFAFA !important;
+        border: 1px solid rgba(220,38,38,0.35) !important;
+        border-radius: 10px !important; font-weight: 600 !important;
+        backdrop-filter: blur(8px); transition: all 0.3s ease !important;
     }
     .stDownloadButton > button:hover {
         background: #DC2626 !important; border-color: #DC2626 !important;
-        box-shadow: 0 6px 20px rgba(220,38,38,0.25) !important;
+        box-shadow: 0 8px 24px rgba(220,38,38,0.25) !important;
     }
 
-    /* === Tables === */
-    .stDataFrame { border-radius: 10px; overflow: hidden; }
+    /* ===== FROST CONTAINERS ===== */
+    [data-testid="stVerticalBlock"] > [data-testid="stVerticalBlockBorderWrapper"] {
+        border-radius: 14px;
+    }
+    [data-testid="stExpander"] {
+        background: rgba(15,15,15,0.6) !important;
+        border: 1px solid rgba(255,255,255,0.05) !important;
+        border-radius: 12px !important;
+        backdrop-filter: blur(8px);
+    }
 
-    /* === Tabs === */
-    .stTabs [data-baseweb="tab"] { font-weight: 600; color: #737373; }
+    /* ===== TABLES ===== */
+    .stDataFrame { border-radius: 12px; overflow: hidden; }
+    [data-testid="stDataFrame"] > div { border-radius: 12px; }
+
+    /* ===== TABS ===== */
+    .stTabs [data-baseweb="tab"] { font-weight: 600; color: #525252; }
     .stTabs [aria-selected="true"] { color: #DC2626 !important; }
 
-    /* === Dividers === */
-    hr { border-color: #1f1f1f !important; }
+    /* ===== DIVIDERS ===== */
+    hr { border-color: rgba(255,255,255,0.04) !important; }
 
-    /* === Status === */
-    [data-testid="stStatusWidget"] { border-radius: 10px; }
+    /* ===== STATUS ===== */
+    [data-testid="stStatusWidget"] {
+        border-radius: 12px;
+        background: rgba(15,15,15,0.8) !important;
+        backdrop-filter: blur(8px);
+    }
 
-    /* === Inputs === */
+    /* ===== INPUTS ===== */
     .stTextInput > div > div > input {
-        background: #111111 !important; border: 1px solid #262626 !important;
-        border-radius: 10px !important; color: #FAFAFA !important;
+        background: rgba(15,15,15,0.9) !important;
+        border: 1px solid rgba(255,255,255,0.08) !important;
+        border-radius: 12px !important; color: #FAFAFA !important;
+        padding: 12px 16px !important; font-size: 0.95rem !important;
+        backdrop-filter: blur(8px);
+        transition: all 0.25s ease !important;
     }
     .stTextInput > div > div > input:focus {
         border-color: #DC2626 !important;
-        box-shadow: 0 0 0 1px #DC2626 !important;
+        box-shadow: 0 0 0 2px rgba(220,38,38,0.15) !important;
     }
+    .stTextInput > div > div > input::placeholder { color: #404040 !important; }
     .stSelectbox > div > div { border-radius: 10px !important; }
     .stRadio > div { gap: 0.8rem; }
+
+    /* ===== PLOTLY CHARTS ===== */
+    [data-testid="stPlotlyChart"] {
+        background: rgba(10,10,10,0.5); border-radius: 14px;
+        border: 1px solid rgba(255,255,255,0.04);
+        padding: 8px; backdrop-filter: blur(4px);
+    }
 </style>
 """, unsafe_allow_html=True)
 
-st.markdown('<p class="main-header">🛡️ Fake<span>Hub</span></p>', unsafe_allow_html=True)
-st.markdown('<p class="sub-header">Real-time AI bot detection · Graph ring analysis · YouTube engagement scoring</p>', unsafe_allow_html=True)
+# ===== HERO HEADER =====
+st.markdown("""
+<div class="hero-container">
+    <p class="main-header">🛡️ Fake<span>Hub</span></p>
+    <p class="sub-header">Real-time AI bot detection · Graph ring analysis · YouTube engagement scoring</p>
+    <div class="hero-badge">⚡ Powered by LLM Embeddings + Neural Network</div>
+</div>
+""", unsafe_allow_html=True)
 
 
 # =============================================================================
