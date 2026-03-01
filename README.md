@@ -18,20 +18,29 @@
 
 <div align="center">
 
-### Hero Dashboard
+### 🏠 Hero Dashboard
 <img src="screenshots/hero_page.png" alt="FakeHub Hero Dashboard" width="700">
 
-### Authenticity Score (94%) & Key Insights
-<img src="screenshots/gauge_94_percent.png" alt="Authenticity Gauge" width="700">
+### 🎯 Authenticity Score (94%) & Key Insights
+<img src="screenshots/authenticity_gauge.png" alt="Authenticity Gauge" width="700">
 
-### Engagement Bursts & Bot Score Distribution
+### 📈 Engagement Bursts & Bot Score Distribution
 <img src="screenshots/engagement_bursts.png" alt="Engagement Bursts Timeline" width="700">
 
-### AI-Generated Analysis Summary
+### 💬 Sentiment Polarity & Temporal Heatmap
+<img src="screenshots/sentiment_temporal.png" alt="Sentiment and Temporal Analysis" width="700">
+
+### 🔗 User Similarity Clustering
+<img src="screenshots/similarity_heatmap.png" alt="Cosine Similarity Heatmap" width="700">
+
+### 🕸️ Interactive Network Graph (Neo4j)
+<img src="screenshots/network_graph.png" alt="Network Graph" width="700">
+
+### 📝 AI-Generated Analysis Summary
 <img src="screenshots/ai_summary.png" alt="AI Summary" width="700">
 
-### Interactive Network Graph (Neo4j)
-<img src="screenshots/network_graph.png" alt="Network Graph" width="700">
+### 🧠 LIME XAI & Detailed Data Table
+<img src="screenshots/table_lime_xai.png" alt="LIME XAI and Data Table" width="700">
 
 </div>
 
