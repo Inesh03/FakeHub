@@ -838,7 +838,7 @@ TOP FLAGGED ACCOUNTS
 
 # --- Demo URL buttons ---
 DEMO_URL_1 = "https://www.youtube.com/watch?v=R1ixxnsbygY"
-DEMO_URL_2 = "https://www.youtube.com/watch?v=dXCliyBQnW"
+DEMO_URL_2 = "https://www.youtube.com/watch?v=dXCliyBQnWU"
 
 demo_col1, demo_col2, demo_col3 = st.columns([1, 1, 1])
 with demo_col1:
