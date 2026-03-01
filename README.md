@@ -93,4 +93,33 @@ FakeHub doesn't just output a single score; it yields **actionable intelligence*
 
 ---
 
+## 📁 Dataset Provenance
+
+### Training Data — TwiBot-22 (Public Dataset)
+| Property | Details |
+| --- | --- |
+| **Type** | Public, pre-labeled |
+| **Source** | [TwiBot-22 Benchmark](https://twibot22.github.io) |
+| **Records Used** | ~100,000 labeled text samples |
+| **Labels** | Binary: `0 = Human`, `1 = Bot` |
+| **Class Distribution** | ~42% Human, ~58% Bot |
+
+**Why it fits behavioural analytics:** TwiBot-22 is among the largest public bot detection benchmarks, encompassing diverse bot typologies (social spambots, fake followers, political bots). The textual patterns transfer directly to YouTube comment bot detection.
+
+**Behavioural features engineered from it:**
+- 384-dimensional dense semantic embeddings via `all-MiniLM-L6-v2` transformer
+- Inter-comment timing regularity (std deviation, mean interval, exact-interval flags)
+- Network cluster membership via Neo4j Cypher traversal
+- Engagement burst anomaly detection (1-minute bucketed time-series)
+
+### Live Inference Data — YouTube Data API v3
+During live demo, up to 500 comments are fetched in real-time per video with fields: `author`, `text`, `published_at`, `likes`, `author_channel_id`, `reply_count`.
+
+---
+
+## 📄 Submission Documents
+- **[Model Explanation Document](model_explanation.md)** — 5-page technical writeup covering problem understanding, data assumptions, feature engineering, model selection, evaluation metrics, and behavioural insights.
+
+---
+
 > Built for Hackathon Problem Statement 3: Fake Engagement Detection in Social Media
