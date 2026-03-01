@@ -14,6 +14,29 @@
 
 ---
 
+## 🖼️ Demo Screenshots
+
+<div align="center">
+
+### Hero Dashboard
+<img src="screenshots/hero_page.png" alt="FakeHub Hero Dashboard" width="700">
+
+### Authenticity Score (94%) & Key Insights
+<img src="screenshots/gauge_94_percent.png" alt="Authenticity Gauge" width="700">
+
+### Engagement Bursts & Bot Score Distribution
+<img src="screenshots/engagement_bursts.png" alt="Engagement Bursts Timeline" width="700">
+
+### AI-Generated Analysis Summary
+<img src="screenshots/ai_summary.png" alt="AI Summary" width="700">
+
+### Interactive Network Graph (Neo4j)
+<img src="screenshots/network_graph.png" alt="Network Graph" width="700">
+
+</div>
+
+---
+
 ## ✨ Key Features
 
 ### 🧠 AI & Detection Engines
