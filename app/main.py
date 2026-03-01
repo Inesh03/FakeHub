@@ -80,9 +80,9 @@ st.markdown("""
         position: relative; z-index: 1;
     }
     .main-header {
-        font-size: 5.5rem; font-weight: 800; letter-spacing: -3px;
-        color: #FFFFFF; margin-bottom: 10px; line-height: 1.0;
-        position: relative; display: inline-block;
+        font-size: 6rem !important; font-weight: 800 !important; letter-spacing: -3px !important;
+        color: #FFFFFF !important; margin-bottom: 10px !important; line-height: 1.0 !important;
+        position: relative; display: block;
     }
     .main-header span {
         background: linear-gradient(135deg, #DC2626, #FF6B6B, #DC2626);
@@ -95,8 +95,8 @@ st.markdown("""
         50% { background-position: 100% 50%; }
     }
     .sub-header {
-        font-size: 1.15rem; color: #525252; text-align: center;
-        margin-bottom: 10px; letter-spacing: 0.6px; font-weight: 300;
+        font-size: 1.2rem !important; color: #525252 !important; text-align: center;
+        margin-bottom: 12px !important; letter-spacing: 0.6px; font-weight: 300 !important;
     }
     .hero-badge {
         display: inline-block; background: rgba(220,38,38,0.08);
@@ -254,8 +254,8 @@ st.markdown("""
 # ===== HERO HEADER =====
 st.markdown("""
 <div class="hero-container">
-    <p class="main-header">🛡️ Fake<span>Hub</span></p>
-    <p class="sub-header">Real-time AI bot detection · Graph ring analysis · YouTube engagement scoring</p>
+    <div class="main-header">🛡️ Fake<span>Hub</span></div>
+    <div class="sub-header">Real-time AI bot detection · Graph ring analysis · YouTube engagement scoring</div>
     <div class="hero-badge">⚡ Powered by LLM Embeddings + Neural Network</div>
     <div class="hero-stats">
         <div class="hero-stat"><div class="hero-stat-value">3</div><div class="hero-stat-label">AI Engines</div></div>
