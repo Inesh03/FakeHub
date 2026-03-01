@@ -46,27 +46,103 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS
+# Custom CSS — playful, premium dark mode
 st.markdown("""
 <style>
-    .reportview-container { background: #0E1117; }
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+
+    html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
+    .stApp { background: linear-gradient(160deg, #0a0a1a 0%, #111827 50%, #0d1b2a 100%); }
+
+    /* === Animated gradient header === */
     .main-header {
-        font-size: 3rem; font-weight: 800;
-        background: -webkit-linear-gradient(45deg, #00C9FF, #92FE9D);
+        font-size: 3.2rem; font-weight: 800; letter-spacing: -1px;
+        background: linear-gradient(270deg, #00C9FF, #92FE9D, #F0F, #FC0, #00C9FF);
+        background-size: 800% 800%;
         -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-        margin-bottom: 0px;
+        animation: gradientShift 6s ease infinite;
+        margin-bottom: 4px; line-height: 1.15;
     }
-    .sub-header { font-size: 1.2rem; color: #A0AEC0; margin-bottom: 30px; }
+    @keyframes gradientShift {
+        0%   { background-position: 0% 50%; }
+        50%  { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+    .sub-header {
+        font-size: 1.15rem; color: #94A3B8; margin-bottom: 28px;
+        letter-spacing: 0.3px;
+    }
+
+    /* === Glassmorphism section titles === */
     .section-title {
-        font-size: 1.8rem; font-weight: 600; color: #E2E8F0;
-        border-bottom: 2px solid #334155; padding-bottom: 10px;
-        margin-top: 40px; margin-bottom: 20px;
+        font-size: 1.6rem; font-weight: 700; color: #F1F5F9;
+        background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(14,165,233,0.1));
+        border-left: 4px solid #818CF8; border-radius: 0 12px 12px 0;
+        padding: 14px 20px; margin-top: 36px; margin-bottom: 18px;
+        backdrop-filter: blur(10px);
     }
+
+    /* === Glowing metric cards === */
+    [data-testid="stMetric"] {
+        background: linear-gradient(145deg, rgba(30,41,59,0.8), rgba(15,23,42,0.9));
+        border: 1px solid rgba(99,102,241,0.2); border-radius: 14px;
+        padding: 16px; box-shadow: 0 0 20px rgba(99,102,241,0.08);
+        transition: all 0.3s ease;
+    }
+    [data-testid="stMetric"]:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 0 30px rgba(99,102,241,0.2);
+        border-color: rgba(99,102,241,0.4);
+    }
+
+    /* === Sidebar polish === */
+    [data-testid="stSidebar"] {
+        background: linear-gradient(180deg, #0F172A 0%, #1E1B4B 100%);
+        border-right: 1px solid rgba(99,102,241,0.15);
+    }
+    [data-testid="stSidebar"] .stButton > button {
+        background: linear-gradient(135deg, #6366F1, #8B5CF6) !important;
+        color: white !important; border: none !important; border-radius: 12px !important;
+        font-weight: 700 !important; letter-spacing: 0.5px;
+        transition: all 0.3s ease !important;
+    }
+    [data-testid="stSidebar"] .stButton > button:hover {
+        transform: scale(1.03); box-shadow: 0 0 24px rgba(139,92,246,0.4) !important;
+    }
+
+    /* === Download button === */
+    .stDownloadButton > button {
+        background: linear-gradient(135deg, #10B981, #059669) !important;
+        color: white !important; border: none !important; border-radius: 12px !important;
+        font-weight: 700 !important; font-size: 1rem !important;
+        padding: 12px 24px !important; transition: all 0.3s ease !important;
+    }
+    .stDownloadButton > button:hover {
+        transform: scale(1.02); box-shadow: 0 0 20px rgba(16,185,129,0.3) !important;
+    }
+
+    /* === Data tables === */
+    .stDataFrame { border-radius: 12px; overflow: hidden; }
+
+    /* === Tabs === */
+    .stTabs [data-baseweb="tab"] {
+        font-weight: 600; color: #94A3B8; border-radius: 10px 10px 0 0;
+    }
+    .stTabs [aria-selected="true"] { color: #818CF8 !important; }
+
+    /* === Dividers === */
+    hr { border-color: rgba(99,102,241,0.15) !important; }
+
+    /* === Status container === */
+    [data-testid="stStatusWidget"] { border-radius: 12px; }
+
+    /* === Selectbox === */
+    .stSelectbox > div > div { border-radius: 10px !important; }
 </style>
 """, unsafe_allow_html=True)
 
-st.markdown('<p class="main-header">🛡️ FakeHub — Fake Engagement Detector</p>', unsafe_allow_html=True)
-st.markdown('<p class="sub-header">AI-powered behavioral analysis to detect bots, coordinated rings, and engagement bursts on YouTube.</p>', unsafe_allow_html=True)
+st.markdown('<p class="main-header">🛡️ FakeHub</p>', unsafe_allow_html=True)
+st.markdown('<p class="sub-header">🔍 AI-powered bot detection · 🕸️ Graph ring analysis · ⚡ Real-time YouTube engagement scoring</p>', unsafe_allow_html=True)
 
 
 # =============================================================================
@@ -89,6 +165,19 @@ def analyze_sentiment(texts, embedder):
         scores = {"Positive": p, "Negative": n, "Neutral": ne}
         sentiments.append(max(scores, key=scores.get))
     return sentiments
+
+
+# Reusable Plotly dark theme
+def dark_plotly_layout():
+    return dict(
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(15,23,42,0.6)",
+        font=dict(color="#E2E8F0", family="Inter"),
+        title_font=dict(size=16, color="#F1F5F9"),
+        legend=dict(bgcolor="rgba(0,0,0,0)"),
+        xaxis=dict(gridcolor="rgba(99,102,241,0.1)"),
+        yaxis=dict(gridcolor="rgba(99,102,241,0.1)"),
+    )
 
 
 # =============================================================================
@@ -128,13 +217,14 @@ def run_analysis(url, embedder, model):
 def render_dashboard(meta, df, timing_df, bursts_df, scores_df, overall_score, embedded_vectors, embedder, model, prefix=""):
     """Render the full dashboard for one video analysis."""
     
-    # --- Video Meta ---
+    # --- Video Meta as Metric Cards ---
+    st.markdown(f"### 🎬 {meta.get('title', 'N/A')}")
+    st.caption(f"📺 Channel: **{meta.get('channel', 'N/A')}**")
     m1, m2, m3, m4 = st.columns(4)
-    with m1: st.info(f"**👁️ Views:** {meta.get('view_count', 0):,}")
-    with m2: st.success(f"**👍 Likes:** {meta.get('like_count', 0):,}")
-    with m3: st.warning(f"**💬 Comments:** {meta.get('comment_count', 0):,}")
-    with m4: st.error(f"**📥 Fetched:** {len(df):,}")
-    st.markdown(f"**Video Title:** {meta.get('title', 'N/A')} | **Channel:** {meta.get('channel', 'N/A')}")
+    with m1: st.metric("👁️ Views", f"{meta.get('view_count', 0):,}")
+    with m2: st.metric("👍 Likes", f"{meta.get('like_count', 0):,}")
+    with m3: st.metric("💬 Total Comments", f"{meta.get('comment_count', 0):,}")
+    with m4: st.metric("📥 Fetched", f"{len(df):,}")
     st.divider()
 
     # --- Authenticity Gauge + Key Insights ---
@@ -186,10 +276,11 @@ def render_dashboard(meta, df, timing_df, bursts_df, scores_df, overall_score, e
     with col_timeline:
         st.markdown('<p class="section-title">📈 Engagement Bursts Timeline</p>', unsafe_allow_html=True)
         if not bursts_df.empty:
-            fig_tl = px.line(bursts_df, x="published_at", y="comment_count",
+            fig_tl = px.area(bursts_df, x="published_at", y="comment_count",
                              labels={"published_at": "Time", "comment_count": "Comments/Min"},
-                             title="Comment Volume (1m buckets)")
-            fig_tl.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0.2)")
+                             title="⏱️ Comment Volume Over Time (1-min buckets)")
+            fig_tl.update_traces(fill='tozeroy', fillcolor='rgba(99,102,241,0.15)', line_color='#818CF8')
+            fig_tl.update_layout(**dark_plotly_layout())
             bp = bursts_df[bursts_df["is_burst"] == True]
             if not bp.empty:
                 fig_tl.add_scatter(x=bp["published_at"], y=bp["comment_count"],
@@ -202,8 +293,8 @@ def render_dashboard(meta, df, timing_df, bursts_df, scores_df, overall_score, e
         st.markdown('<p class="section-title">📊 Bot Score Distribution</p>', unsafe_allow_html=True)
         fig_hist = px.histogram(scores_df, x="bot_score", nbins=30, color="risk_label",
                                 color_discrete_map={"🔴 High Risk": "#EF4444", "🟡 Suspicious": "#F59E0B", "🟢 Likely Human": "#10B981"},
-                                labels={"bot_score": "Bot Probability", "count": "Commenters"}, title="Distribution among Commenters")
-        fig_hist.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0.2)")
+                                labels={"bot_score": "Bot Probability", "count": "Commenters"}, title="🤖 Distribution Among Commenters")
+        fig_hist.update_layout(**dark_plotly_layout())
         st.plotly_chart(fig_hist, use_container_width=True, key=f"{prefix}_hist")
 
     st.divider()
@@ -220,7 +311,8 @@ def render_dashboard(meta, df, timing_df, bursts_df, scores_df, overall_score, e
                              color="Sentiment",
                              color_discrete_map={"Positive": "#10B981", "Negative": "#EF4444", "Neutral": "#64748B"},
                              title="Comment Sentiment Breakdown")
-            fig_pie.update_layout(paper_bgcolor="rgba(0,0,0,0)", font={"color": "white"})
+            fig_pie.update_traces(textfont_size=14, pull=[0.05]*len(sent_counts))
+            fig_pie.update_layout(**dark_plotly_layout())
             st.plotly_chart(fig_pie, use_container_width=True, key=f"{prefix}_sentiment")
     
     with col_temp:
@@ -235,9 +327,9 @@ def render_dashboard(meta, df, timing_df, bursts_df, scores_df, overall_score, e
             # Reindex to proper day order
             heatmap_pivot = heatmap_pivot.reindex([d for d in day_order if d in heatmap_pivot.index])
             fig_heat = px.imshow(heatmap_pivot, labels={"x": "Hour of Day (UTC)", "y": "Day", "color": "Comments"},
-                                 color_continuous_scale="YlOrRd", title="Comment Density by Hour & Day",
+                                 color_continuous_scale="Purp", title="🕐 Comment Density by Hour & Day",
                                  aspect="auto")
-            fig_heat.update_layout(paper_bgcolor="rgba(0,0,0,0)", font={"color": "white"})
+            fig_heat.update_layout(**dark_plotly_layout())
             st.plotly_chart(fig_heat, use_container_width=True, key=f"{prefix}_temporal")
 
     st.divider()
@@ -262,9 +354,9 @@ def render_dashboard(meta, df, timing_df, bursts_df, scores_df, overall_score, e
         np.fill_diagonal(sim_matrix, 0)  # Remove self-similarity
         
         fig_sim = px.imshow(sim_matrix, x=names, y=names,
-                            color_continuous_scale="Plasma", title="Pairwise Text Similarity (Top Commenters)",
+                            color_continuous_scale="Viridis", title="🔗 Pairwise Text Similarity (Top Commenters)",
                             labels={"color": "Cosine Sim"}, aspect="auto")
-        fig_sim.update_layout(paper_bgcolor="rgba(0,0,0,0)", font={"color": "white"}, height=500)
+        fig_sim.update_layout(**dark_plotly_layout(), height=500)
         st.plotly_chart(fig_sim, use_container_width=True, key=f"{prefix}_similarity")
     else:
         st.info("Not enough distinct authors for a similarity matrix.")
@@ -295,7 +387,7 @@ def render_dashboard(meta, df, timing_df, bursts_df, scores_df, overall_score, e
                     labels={"first_seen": "First Comment Time", "bot_score": "Bot Score"},
                     title="When Did Suspicious Accounts First Appear?"
                 )
-                fig_scatter.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0.2)", font={"color": "white"})
+                fig_scatter.update_layout(**dark_plotly_layout())
                 st.plotly_chart(fig_scatter, use_container_width=True, key=f"{prefix}_age_scatter")
             else:
                 st.success("No high-risk accounts detected! 🎉")
@@ -314,7 +406,7 @@ def render_dashboard(meta, df, timing_df, bursts_df, scores_df, overall_score, e
                              labels={"risk_label": "Risk Level", "total_comments": "Total Comments"},
                              title="Comment Volume by Risk Category")
             fig_bar.update_traces(texttemplate='%{text} users', textposition='outside')
-            fig_bar.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0.2)", font={"color": "white"}, showlegend=False)
+            fig_bar.update_layout(**dark_plotly_layout(), showlegend=False)
             st.plotly_chart(fig_bar, use_container_width=True, key=f"{prefix}_age_bar")
 
     st.divider()
