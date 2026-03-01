@@ -10,64 +10,114 @@
 
 <br>
 
-**FakeHub** is a real-time behavioral detection model designed to differentiate organic engagement from artificial bot activity on YouTube. It detects coordinated behavioral anomalies, bot rings, and engagement bursts using a fusion of Deep Learning semantic analysis and Graph Database traversal.
+**FakeHub** is a real-time behavioural detection system that differentiates organic engagement from artificial bot activity on YouTube. It detects coordinated behavioural anomalies, bot rings, and engagement bursts using a fusion of **LLM-based Deep Learning**, **Neo4j Graph Analysis**, and **Time-Series Anomaly Detection** — all rendered in a premium dark-mode Streamlit dashboard.
 
 ---
 
 ## ✨ Key Features
-- **Deep Semantic NLP**: Uses `SentenceTransformers` (`all-MiniLM-L6-v2`) and a Multi-Layer Perceptron neural network to detect bot linguistic patterns and spam.
-- **Neo4j Graph Analysis**: Reconstructs user interactions into an animated, physics-based 3D graph to visually identify **coordinated posting rings**.
-- **Time-Series Burst Detection**: Mathematical interval tracking to flag exact machine-like posting delays and unusual spikes in traffic.
-- **Explainable AI (XAI)**: Integrated `lime` interpretability to generate human-readable explanations of exactly *which* words triggered the AI to flag a comment as a bot.
-- **Live Streamlit Dashboard**: A sleek, dark-themed command center to run analysis in real-time.
+
+### 🧠 AI & Detection Engines
+- **Deep Semantic NLP**: `SentenceTransformers` (`all-MiniLM-L6-v2`) encodes comments into 384-dim dense embeddings, classified by an `MLPClassifier(128, 64)` neural network — **91% accuracy**.
+- **Neo4j Graph Analysis**: Reconstructs user interactions into a physics-based network graph to visually identify **coordinated posting rings**.
+- **Time-Series Burst Detection**: 1-minute bucketed volume analysis with z-score anomaly flagging for machine-like posting patterns.
+- **Sentiment Polarity Analysis**: Embeddings-based sentiment classification (Positive/Negative/Neutral) to detect generic bot spam patterns.
+- **User Similarity Clustering**: Pairwise cosine similarity heatmap across commenter embeddings to flag copy-paste bot rings.
+- **Temporal Activity Heatmap**: Visualizes comment density by hour × day to reveal bot farm operating schedules.
+- **Account Age Analysis**: Scatter plots of when flagged accounts first appeared, revealing coordinated appearance patterns.
+
+### 🎯 Explainability & Insights
+- **LIME XAI**: Per-comment feature importance — see exactly *which words* triggered a bot classification.
+- **AI-Generated Summary**: Natural-language verdict synthesizing all metrics into a detailed risk assessment with per-engine findings.
+- **Per-Commenter Anomaly Explanations**: Human-readable reason for each flag (e.g., *"Posted 12 comments at exact machine-like intervals"*).
+
+### 🖥️ Dashboard & UX
+- **Premium Dark UI**: Red/black/white theme with animated radial glow background, dot-grid pattern, glassmorphism cards, and cursor glow trail.
+- **Animated Authenticity Gauge**: Counts down from 100% to the actual score with a smooth CSS progress bar.
+- **Floating Particle System**: 40 red particles with neural-network-style connecting lines.
+- **Demo URL Buttons**: One-click auto-fill for instant demo — no URL searching during a presentation.
+- **Side-by-Side Video Comparison**: Analyze two videos simultaneously with parallel tab rendering.
+- **Export Report**: Download a full `.txt` report with all metrics, risk breakdown, and top flagged accounts.
 
 ---
 
 ## 📊 Model Performance & Metrics
-Trained against the highly imbalanced TwiBot-22 dataset using 384-dimensional dense semantic vector embeddings.
 
-| Metric | Score |
-| ------ | ----- |
-| **Accuracy** | 91.0% |
-| **F1-Score (Bot)** | 0.92 |
-| **F1-Score (Human)** | 0.89 |
-| **Precision (Bot)** | 0.94 |
-| **Recall (Bot)** | 0.90 |
+Trained on the TwiBot-22 dataset using 384-dimensional dense semantic embeddings.
 
----
+| Metric | Human | Bot |
+| ------ | ----- | --- |
+| **Precision** | 0.87 | **0.94** |
+| **Recall** | 0.92 | 0.90 |
+| **F1-Score** | 0.89 | **0.92** |
 
-## 🏗️ Architecture Stack
-1. **Data Ingestion**: YouTube Data API v3 
-2. **AI Semantic Engine**: HuggingFace `sentence-transformers` + scikit-learn `MLPClassifier`
-3. **Graph Engine**: Local `Neo4j` database + `pyvis` for frontend physics rendering
-4. **Scoring Fusion**: Custom python heuristics weighting NLP, Graph, and Timestamps
-5. **Frontend UI**: `Streamlit`, HTML components, Custom CSS, Plotly
+| Overall Metric | Value |
+| --- | --- |
+| **Accuracy** | **91.0%** |
+| **Weighted Avg F1** | **0.91** |
 
 ---
 
-## 🚀 Quick Setup Guide
+## 🏗️ Architecture
+
+```
+YouTube Video URL
+       │
+       ▼
+┌──────────────────────────────────────────────────────┐
+│              YouTube Data API v3                      │
+│         (Fetch up to 500 top-level comments)          │
+└───────────────────┬──────────────────────────────────┘
+                    │
+       ┌────────────┼────────────┐
+       ▼            ▼            ▼
+  ┌─────────┐  ┌─────────┐  ┌──────────┐
+  │   NLP   │  │  Graph  │  │  Timing  │
+  │ Engine  │  │  Engine │  │  Engine  │
+  │ (LLM +  │  │ (Neo4j) │  │(Interval │
+  │  MLP)   │  │         │  │+ Bursts) │
+  └────┬────┘  └────┬────┘  └────┬─────┘
+       │            │            │
+       ▼            ▼            ▼
+┌──────────────────────────────────────────────────────┐
+│          Score Fusion Engine (0.40 / 0.35 / 0.25)     │
+│     + Sentiment + Similarity + Temporal + Age         │
+└───────────────────┬──────────────────────────────────┘
+                    │
+                    ▼
+         ┌─────────────────────┐
+         │  Streamlit Dashboard │
+         │  • Animated Gauge   │
+         │  • AI Summary       │
+         │  • Network Graph    │
+         │  • LIME XAI         │
+         │  • 8 Chart Panels   │
+         └─────────────────────┘
+```
+
+**Stack**: Python 3.11 · Streamlit · SentenceTransformers · scikit-learn · Neo4j · PyVis · Plotly · LIME · Pandas · NumPy
+
+---
+
+## 🚀 Quick Setup
 
 ### 1. Prerequisites
 - Python 3.10+
-- An active `Neo4j` database (Desktop, Docker, or AuraDB cloud)
-- A Google Cloud Console API Key (for YouTube Data API v3)
+- Neo4j database (Desktop, Docker, or [AuraDB Free](https://neo4j.com/cloud/platform/aura-graph-database/))
+- Google Cloud Console API Key ([YouTube Data API v3](https://console.cloud.google.com))
 
 ### 2. Installation
 ```bash
-# Clone the repository
 git clone https://github.com/Inesh03/FakeHub.git
 cd FakeHub
 
-# Create and activate virtual environment
 python -m venv venv
-source venv/bin/activate  # On Windows use `venv\Scripts\activate`
+source venv/bin/activate  # Windows: venv\Scripts\activate
 
-# Install required dependencies
 pip install -r requirements.txt
 ```
 
 ### 3. Environment Variables
-Create a `.env` file in the root directory and add:
+Create a `.env` file in the root directory:
 ```env
 YOUTUBE_API_KEY=your_google_console_api_key_here
 NEO4J_URI=bolt://localhost:7687
@@ -75,21 +125,12 @@ NEO4J_USERNAME=neo4j
 NEO4J_PASSWORD=your_neo4j_password
 ```
 
-*(Note: Data sets and `.pkl` model files have been excluded from this repository via `.gitignore` to comply with GitHub's LFS limits. To retrain the model, place the TwiBot-22 CSV in `data/` and run `python models/train_nlp_model.py`)*
-
-### 4. Running the Dashboard
-Make sure your Neo4j database is actively running, then start the AI command center:
+### 4. Run the Dashboard
 ```bash
 streamlit run app/main.py
 ```
 
----
-
-## 🔬 Explainable Anomaly Insights
-FakeHub doesn't just output a single score; it yields **actionable intelligence** by generating localized explanations for *why* an account is suspicious:
-- 🔴 *"Posted at exact machine-like intervals"*
-- 🔴 *"Identified in a coordinated posting ring"*
-- 🟡 *"Engagement burst anomaly detected"*
+> **Note:** Pre-trained model files (`.pkl`) are excluded via `.gitignore`. To retrain, place the TwiBot-22 CSV in `data/` and run `python models/train_nlp_model.py`.
 
 ---
 
@@ -104,21 +145,38 @@ FakeHub doesn't just output a single score; it yields **actionable intelligence*
 | **Labels** | Binary: `0 = Human`, `1 = Bot` |
 | **Class Distribution** | ~42% Human, ~58% Bot |
 
-**Why it fits behavioural analytics:** TwiBot-22 is among the largest public bot detection benchmarks, encompassing diverse bot typologies (social spambots, fake followers, political bots). The textual patterns transfer directly to YouTube comment bot detection.
+**Why it fits:** TwiBot-22 is among the largest public bot detection benchmarks, spanning diverse bot typologies — social spambots, fake followers, political bots. Textual bot patterns transfer directly to YouTube comment detection.
 
-**Behavioural features engineered from it:**
-- 384-dimensional dense semantic embeddings via `all-MiniLM-L6-v2` transformer
-- Inter-comment timing regularity (std deviation, mean interval, exact-interval flags)
-- Network cluster membership via Neo4j Cypher traversal
-- Engagement burst anomaly detection (1-minute bucketed time-series)
+**Behavioural features engineered:**
+- 384-dim dense semantic embeddings via `all-MiniLM-L6-v2`
+- Inter-comment timing regularity (std, mean, exact-interval flags)
+- Neo4j coordinated posting ring detection
+- Engagement burst anomaly flagging (1-min z-score)
+- Sentiment polarity classification
+- Cross-user cosine similarity clustering
 
-### Live Inference Data — YouTube Data API v3
-During live demo, up to 500 comments are fetched in real-time per video with fields: `author`, `text`, `published_at`, `likes`, `author_channel_id`, `reply_count`.
+### Live Inference — YouTube Data API v3
+Up to **500 comments** fetched in real-time per video. Fields: `author`, `text`, `published_at`, `likes`, `author_channel_id`, `reply_count`. API cost: **5 units** per analysis (well under 10,000 daily quota).
 
 ---
 
-## 📄 Submission Documents
-- **[Model Explanation Document](model_explanation.md)** — 5-page technical writeup covering problem understanding, data assumptions, feature engineering, model selection, evaluation metrics, and behavioural insights.
+## 🔬 Detection Indicators (8 Total)
+
+| # | Indicator | Method |
+|---|-----------|--------|
+| 1 | 🤖 NLP Bot Probability | LLM embeddings + MLP neural net |
+| 2 | ⏱️ Timing Regularity | Inter-comment interval std deviation |
+| 3 | 📈 Engagement Bursts | 1-min bucketed z-score anomaly detection |
+| 4 | 🕸️ Coordinated Rings | Neo4j graph traversal (60s window pairs) |
+| 5 | 💬 Sentiment Polarity | Embedding-anchor similarity classification |
+| 6 | 🔗 Text Similarity | Pairwise cosine similarity heatmap |
+| 7 | 🕐 Temporal Patterns | Hour × day comment density heatmap |
+| 8 | 🆕 Account Age | First-appearance timing analysis |
+
+---
+
+## 📄 Documentation
+- **[Model Explanation Document](model_explanation.md)** — 5-page technical writeup: problem understanding, data assumptions, feature engineering, model selection, evaluation, behavioural insights, practical feasibility, and visualization quality.
 
 ---
 
