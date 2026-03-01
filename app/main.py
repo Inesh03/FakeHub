@@ -76,26 +76,62 @@ st.markdown("""
 
     /* ===== HEADER ===== */
     .hero-container {
-        text-align: center; padding: 40px 0 10px 0; position: relative; z-index: 1;
+        text-align: center; padding: 60px 0 20px 0;
+        position: relative; z-index: 1;
     }
     .main-header {
-        font-size: 3.8rem; font-weight: 800; letter-spacing: -2px;
-        color: #FFFFFF; margin-bottom: 6px; line-height: 1.05;
+        font-size: 5.5rem; font-weight: 800; letter-spacing: -3px;
+        color: #FFFFFF; margin-bottom: 10px; line-height: 1.0;
+        position: relative; display: inline-block;
     }
     .main-header span {
-        background: linear-gradient(135deg, #DC2626, #FF6B6B);
+        background: linear-gradient(135deg, #DC2626, #FF6B6B, #DC2626);
+        background-size: 200% 200%;
         -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        animation: shimmer 3s ease-in-out infinite;
+    }
+    @keyframes shimmer {
+        0%, 100% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
     }
     .sub-header {
-        font-size: 1.05rem; color: #525252; text-align: center;
-        margin-bottom: 8px; letter-spacing: 0.6px; font-weight: 300;
+        font-size: 1.15rem; color: #525252; text-align: center;
+        margin-bottom: 10px; letter-spacing: 0.6px; font-weight: 300;
     }
     .hero-badge {
         display: inline-block; background: rgba(220,38,38,0.08);
-        border: 1px solid rgba(220,38,38,0.2); border-radius: 20px;
-        padding: 6px 16px; color: #EF4444; font-size: 0.78rem;
-        font-weight: 600; letter-spacing: 1px; text-transform: uppercase;
-        margin-bottom: 28px;
+        border: 1px solid rgba(220,38,38,0.25); border-radius: 24px;
+        padding: 8px 20px; color: #EF4444; font-size: 0.82rem;
+        font-weight: 600; letter-spacing: 1.2px; text-transform: uppercase;
+        margin-bottom: 32px;
+        animation: badgePulse 2.5s ease-in-out infinite;
+    }
+    @keyframes badgePulse {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(220,38,38,0.15); }
+        50% { box-shadow: 0 0 20px 4px rgba(220,38,38,0.12); }
+    }
+    .hero-stats {
+        display: flex; justify-content: center; gap: 40px;
+        margin-bottom: 16px;
+    }
+    .hero-stat {
+        text-align: center;
+    }
+    .hero-stat-value {
+        font-size: 1.6rem; font-weight: 800; color: #FAFAFA;
+    }
+    .hero-stat-label {
+        font-size: 0.72rem; color: #525252; text-transform: uppercase;
+        letter-spacing: 1.2px; margin-top: 2px;
+    }
+
+    /* ===== CURSOR GLOW ===== */
+    .cursor-glow {
+        position: fixed; width: 300px; height: 300px;
+        border-radius: 50%; pointer-events: none;
+        background: radial-gradient(circle, rgba(220,38,38,0.08) 0%, transparent 70%);
+        transform: translate(-50%, -50%);
+        z-index: 9999; transition: left 0.1s ease, top 0.1s ease;
     }
 
     /* ===== GLASSMORPHISM SECTION TITLES ===== */
@@ -221,8 +257,93 @@ st.markdown("""
     <p class="main-header">🛡️ Fake<span>Hub</span></p>
     <p class="sub-header">Real-time AI bot detection · Graph ring analysis · YouTube engagement scoring</p>
     <div class="hero-badge">⚡ Powered by LLM Embeddings + Neural Network</div>
+    <div class="hero-stats">
+        <div class="hero-stat"><div class="hero-stat-value">3</div><div class="hero-stat-label">AI Engines</div></div>
+        <div class="hero-stat"><div class="hero-stat-value">500</div><div class="hero-stat-label">Comments Scanned</div></div>
+        <div class="hero-stat"><div class="hero-stat-value">91%</div><div class="hero-stat-label">Model Accuracy</div></div>
+        <div class="hero-stat"><div class="hero-stat-value">8</div><div class="hero-stat-label">Indicators</div></div>
+    </div>
 </div>
 """, unsafe_allow_html=True)
+
+# ===== CURSOR GLOW + FLOATING PARTICLES (JS) =====
+components.html("""
+<div class="cursor-glow" id="cursorGlow"></div>
+<canvas id="particles" style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;"></canvas>
+<script>
+// --- Cursor Glow ---
+const glow = document.getElementById('cursorGlow');
+if (glow) {
+    document.addEventListener('mousemove', (e) => {
+        glow.style.left = e.clientX + 'px';
+        glow.style.top = e.clientY + 'px';
+    });
+}
+
+// --- Floating Particles ---
+const canvas = document.getElementById('particles');
+if (canvas) {
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    window.addEventListener('resize', () => {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    });
+
+    const particles = [];
+    for (let i = 0; i < 40; i++) {
+        particles.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            r: Math.random() * 1.5 + 0.5,
+            dx: (Math.random() - 0.5) * 0.3,
+            dy: (Math.random() - 0.5) * 0.3,
+            opacity: Math.random() * 0.3 + 0.05
+        });
+    }
+
+    function animate() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        particles.forEach(p => {
+            p.x += p.dx; p.y += p.dy;
+            if (p.x < 0 || p.x > canvas.width) p.dx *= -1;
+            if (p.y < 0 || p.y > canvas.height) p.dy *= -1;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(220, 38, 38, ${p.opacity})`;
+            ctx.fill();
+        });
+
+        // Draw connections
+        for (let i = 0; i < particles.length; i++) {
+            for (let j = i + 1; j < particles.length; j++) {
+                const dist = Math.hypot(particles[i].x - particles[j].x, particles[i].y - particles[j].y);
+                if (dist < 120) {
+                    ctx.beginPath();
+                    ctx.moveTo(particles[i].x, particles[i].y);
+                    ctx.lineTo(particles[j].x, particles[j].y);
+                    ctx.strokeStyle = `rgba(220, 38, 38, ${0.04 * (1 - dist / 120)})`;
+                    ctx.lineWidth = 0.5;
+                    ctx.stroke();
+                }
+            }
+        }
+        requestAnimationFrame(animate);
+    }
+    animate();
+}
+</script>
+<style>
+.cursor-glow {
+    position: fixed; width: 300px; height: 300px;
+    border-radius: 50%; pointer-events: none;
+    background: radial-gradient(circle, rgba(220,38,38,0.07) 0%, transparent 70%);
+    transform: translate(-50%, -50%);
+    z-index: 9999; transition: left 0.08s ease-out, top 0.08s ease-out;
+}
+</style>
+""", height=0)
 
 
 # =============================================================================
