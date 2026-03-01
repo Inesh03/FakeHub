@@ -742,24 +742,23 @@ TOP FLAGGED ACCOUNTS
 # =============================================================================
 
 # --- Demo URL buttons ---
-DEMO_URL_1 = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"  # Popular, organic engagement
-DEMO_URL_2 = "https://www.youtube.com/watch?v=kJQP7kiw5Fk"  # High-traffic, good for comparison
-
-if "demo_url" not in st.session_state:
-    st.session_state["demo_url"] = ""
+DEMO_URL_1 = "https://www.youtube.com/watch?v=R1ixxnsbygY"
+DEMO_URL_2 = "https://www.youtube.com/watch?v=dXCliyBQnW"
 
 demo_col1, demo_col2, demo_col3 = st.columns([1, 1, 1])
 with demo_col1:
-    if st.button("🎬 Try Demo Video 1", use_container_width=True, help="Rick Astley — Never Gonna Give You Up"):
-        st.session_state["demo_url"] = DEMO_URL_1
+    if st.button("🎬 Try Demo Video 1", use_container_width=True):
+        st.session_state["url_1"] = DEMO_URL_1
+        st.session_state["analysis_done"] = False
         st.rerun()
 with demo_col2:
-    if st.button("🎬 Try Demo Video 2", use_container_width=True, help="Luis Fonsi — Despacito"):
-        st.session_state["demo_url"] = DEMO_URL_2
+    if st.button("🎬 Try Demo Video 2", use_container_width=True):
+        st.session_state["url_1"] = DEMO_URL_2
+        st.session_state["analysis_done"] = False
         st.rerun()
 with demo_col3:
     if st.button("🗑️ Clear", use_container_width=True):
-        st.session_state["demo_url"] = ""
+        st.session_state["url_1"] = ""
         st.session_state["analysis_done"] = False
         st.rerun()
 
@@ -768,8 +767,7 @@ mode = st.radio("Analysis Mode", ["Single Video", "Compare Two Videos"], horizon
 
 col_left, col_input, col_btn = st.columns([0.05, 3, 1])
 with col_input:
-    default_url = st.session_state.get("demo_url", "")
-    url = st.text_input("YouTube Video URL", value=default_url, placeholder="Paste a YouTube URL here...", key="url_1", label_visibility="collapsed")
+    url = st.text_input("YouTube Video URL", placeholder="Paste a YouTube URL here...", key="url_1", label_visibility="collapsed")
     url2 = None
     if mode == "Compare Two Videos":
         url2 = st.text_input("Second URL", placeholder="Paste a second YouTube URL here...", key="url_2", label_visibility="collapsed")
