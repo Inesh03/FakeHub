@@ -753,12 +753,18 @@ st.divider()
 
 
 # =============================================================================
-# MAIN EXECUTION
+# MAIN EXECUTION — Cache results in session_state for rerun persistence
 # =============================================================================
+
+# Load model/embedder once and cache
+@st.cache_resource
+def load_models():
+    m = joblib.load("models/llm_mlp_model.pkl")
+    e = SentenceTransformer("all-MiniLM-L6-v2")
+    return m, e
+
 if analyze_btn and url:
-    # Load models once
-    model = joblib.load("models/llm_mlp_model.pkl")
-    embedder = SentenceTransformer("all-MiniLM-L6-v2")
+    model, embedder = load_models()
     
     if mode == "Single Video":
         with st.status("Running AI Behavioral Analysis Pipeline...", expanded=True) as status:
@@ -770,10 +776,12 @@ if analyze_btn and url:
             meta, df, timing_df, bursts_df, scores_df, overall_score, emb_vecs = run_analysis(url, embedder, model)
             status.update(label="✅ Analysis Complete!", state="complete", expanded=False)
         
-        render_dashboard(meta, df, timing_df, bursts_df, scores_df, overall_score, emb_vecs, embedder, model, prefix="single")
+        # Save to session state so results persist across selectbox reruns
+        st.session_state["analysis_done"] = True
+        st.session_state["analysis_mode"] = "single"
+        st.session_state["single_results"] = (meta, df, timing_df, bursts_df, scores_df, overall_score, emb_vecs)
     
     elif mode == "Compare Two Videos" and url2:
-        # Feature 3: Side by side comparison
         with st.status("Analyzing Video 1...", expanded=True) as s1:
             meta1, df1, t1, b1, s_df1, score1, ev1 = run_analysis(url, embedder, model)
             s1.update(label="✅ Video 1 Done!", state="complete", expanded=False)
@@ -782,15 +790,34 @@ if analyze_btn and url:
             meta2, df2, t2, b2, s_df2, score2, ev2 = run_analysis(url2, embedder, model)
             s2.update(label="✅ Video 2 Done!", state="complete", expanded=False)
         
-        # Comparison Header
+        st.session_state["analysis_done"] = True
+        st.session_state["analysis_mode"] = "compare"
+        st.session_state["compare_results"] = (
+            (meta1, df1, t1, b1, s_df1, score1, ev1),
+            (meta2, df2, t2, b2, s_df2, score2, ev2)
+        )
+    else:
+        st.warning("Please enter a second YouTube URL for comparison mode.")
+
+# =============================================================================
+# RENDER FROM SESSION STATE (persists across selectbox reruns)
+# =============================================================================
+if st.session_state.get("analysis_done"):
+    model, embedder = load_models()
+    
+    if st.session_state.get("analysis_mode") == "single":
+        meta, df, timing_df, bursts_df, scores_df, overall_score, emb_vecs = st.session_state["single_results"]
+        render_dashboard(meta, df, timing_df, bursts_df, scores_df, overall_score, emb_vecs, embedder, model, prefix="single")
+    
+    elif st.session_state.get("analysis_mode") == "compare":
+        (meta1, df1, t1, b1, s_df1, score1, ev1), (meta2, df2, t2, b2, s_df2, score2, ev2) = st.session_state["compare_results"]
+        
         st.markdown('<p class="section-title">⚖️ Side-by-Side Comparison</p>', unsafe_allow_html=True)
         comp1, comp2 = st.columns(2)
         with comp1:
-            color1 = "#10B981" if score1 >= 70 else ("#F59E0B" if score1 >= 40 else "#EF4444")
             st.metric("Video 1 Authenticity", f"{score1}%")
             st.caption(meta1.get("title", "N/A"))
         with comp2:
-            color2 = "#10B981" if score2 >= 70 else ("#F59E0B" if score2 >= 40 else "#EF4444")
             st.metric("Video 2 Authenticity", f"{score2}%")
             st.caption(meta2.get("title", "N/A"))
         
@@ -801,5 +828,4 @@ if analyze_btn and url:
             render_dashboard(meta1, df1, t1, b1, s_df1, score1, ev1, embedder, model, prefix="v1")
         with tab2:
             render_dashboard(meta2, df2, t2, b2, s_df2, score2, ev2, embedder, model, prefix="v2")
-    else:
-        st.warning("Please enter a second YouTube URL for comparison mode.")
+
