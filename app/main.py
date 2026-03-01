@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 import numpy as np
 
 # Add project root to sys.path so we can import local modules
@@ -434,22 +435,36 @@ def render_dashboard(meta, df, timing_df, bursts_df, scores_df, overall_score, e
     
     with col_gauge:
         color = "#10B981" if overall_score >= 70 else ("#F59E0B" if overall_score >= 40 else "#EF4444")
-        gauge = go.Figure(go.Indicator(
-            mode="gauge+number", value=overall_score,
-            title={"text": "Authenticity Score", "font": {"size": 24, "color": "white"}},
-            number={"font": {"size": 48, "color": color}, "suffix": "%"},
-            gauge={
-                "axis": {"range": [0, 100], "tickwidth": 1, "tickcolor": "white"},
-                "bar": {"color": color, "thickness": 0.3}, "bgcolor": "rgba(0,0,0,0)", "borderwidth": 0,
-                "steps": [
-                    {"range": [0, 40], "color": "rgba(239,68,68,0.2)"},
-                    {"range": [40, 70], "color": "rgba(245,158,11,0.2)"},
-                    {"range": [70, 100], "color": "rgba(16,185,129,0.2)"},
-                ]
-            }
-        ))
-        gauge.update_layout(height=350, margin=dict(l=20, r=20, t=50, b=20), paper_bgcolor="rgba(0,0,0,0)", font={"color": "white"})
-        st.plotly_chart(gauge, use_container_width=True, key=f"{prefix}_gauge")
+        # Animated gauge via JS — counts down from 100 to actual score
+        gauge_html = f"""
+        <div id="gauge-container-{prefix}" style="text-align:center;padding:30px 0;">
+            <div style="font-size:0.9rem;color:#737373;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:12px;">Authenticity Score</div>
+            <div id="gauge-number-{prefix}" style="font-size:5rem;font-weight:800;color:{color};line-height:1;font-family:Inter,sans-serif;">100%</div>
+            <div style="margin-top:16px;height:6px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden;max-width:300px;margin-left:auto;margin-right:auto;">
+                <div id="gauge-bar-{prefix}" style="height:100%;width:100%;border-radius:3px;background:linear-gradient(90deg,#DC2626,{color});transition:width 2s cubic-bezier(0.4,0,0.2,1);"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;max-width:300px;margin:6px auto 0;"><span style="font-size:0.7rem;color:#404040;">0</span><span style="font-size:0.7rem;color:#404040;">100</span></div>
+        </div>
+        <script>
+        (function() {{
+            const target = {overall_score};
+            const el = document.getElementById('gauge-number-{prefix}');
+            const bar = document.getElementById('gauge-bar-{prefix}');
+            let current = 100;
+            const step = (100 - target) / 60;
+            const interval = setInterval(() => {{
+                current -= step;
+                if ((step > 0 && current <= target) || (step < 0 && current >= target)) {{
+                    current = target;
+                    clearInterval(interval);
+                }}
+                el.textContent = Math.round(current) + '%';
+            }}, 25);
+            setTimeout(() => {{ bar.style.width = target + '%'; }}, 100);
+        }})();
+        </script>
+        """
+        components.html(gauge_html, height=220)
 
     with col_insights:
         st.markdown("<br><br>", unsafe_allow_html=True)
@@ -725,11 +740,36 @@ TOP FLAGGED ACCOUNTS
 # =============================================================================
 # CENTERED INPUT AREA
 # =============================================================================
+
+# --- Demo URL buttons ---
+DEMO_URL_1 = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"  # Popular, organic engagement
+DEMO_URL_2 = "https://www.youtube.com/watch?v=kJQP7kiw5Fk"  # High-traffic, good for comparison
+
+if "demo_url" not in st.session_state:
+    st.session_state["demo_url"] = ""
+
+demo_col1, demo_col2, demo_col3 = st.columns([1, 1, 1])
+with demo_col1:
+    if st.button("🎬 Try Demo Video 1", use_container_width=True, help="Rick Astley — Never Gonna Give You Up"):
+        st.session_state["demo_url"] = DEMO_URL_1
+        st.rerun()
+with demo_col2:
+    if st.button("🎬 Try Demo Video 2", use_container_width=True, help="Luis Fonsi — Despacito"):
+        st.session_state["demo_url"] = DEMO_URL_2
+        st.rerun()
+with demo_col3:
+    if st.button("🗑️ Clear", use_container_width=True):
+        st.session_state["demo_url"] = ""
+        st.session_state["analysis_done"] = False
+        st.rerun()
+
+st.markdown("")
 mode = st.radio("Analysis Mode", ["Single Video", "Compare Two Videos"], horizontal=True, label_visibility="collapsed")
 
 col_left, col_input, col_btn = st.columns([0.05, 3, 1])
 with col_input:
-    url = st.text_input("YouTube Video URL", placeholder="Paste a YouTube URL here...", key="url_1", label_visibility="collapsed")
+    default_url = st.session_state.get("demo_url", "")
+    url = st.text_input("YouTube Video URL", value=default_url, placeholder="Paste a YouTube URL here...", key="url_1", label_visibility="collapsed")
     url2 = None
     if mode == "Compare Two Videos":
         url2 = st.text_input("Second URL", placeholder="Paste a second YouTube URL here...", key="url_2", label_visibility="collapsed")
@@ -767,12 +807,21 @@ if analyze_btn and url:
     model, embedder = load_models()
     
     if mode == "Single Video":
-        with st.status("Running AI Behavioral Analysis Pipeline...", expanded=True) as status:
-            st.write("🤖 1/5: Running NLP bot detection (LLM Embeddings + Neural Net)...")
-            st.write("💬 2/5: Analyzing sentiment polarity...")
-            st.write("⏱️ 3/5: Analyzing timing patterns & engagement bursts...")
-            st.write("🕸️ 4/5: Building Neo4j interaction graph...")
-            st.write("📊 5/5: Fusing behavioural signals into scores...")
+        with st.status("Initializing AI engines...", expanded=True) as status:
+            loading_msgs = [
+                ("🧠 Waking up the neural network...", 0.4),
+                ("🔍 Scanning 500 comments from YouTube API...", 0.3),
+                ("🤖 Deploying LLM embeddings (all-MiniLM-L6-v2)...", 0.3),
+                ("💬 Analyzing sentiment polarity across comments...", 0.2),
+                ("⏱️ Hunting for machine-like timing patterns...", 0.2),
+                ("📈 Detecting engagement burst anomalies...", 0.2),
+                ("🕸️ Building Neo4j interaction graph to find bot rings...", 0.3),
+                ("🎯 Fusing NLP + Timing + Graph signals into final scores...", 0.2),
+                ("✨ Generating behavioural insights & anomaly explanations...", 0.2),
+            ]
+            for msg, delay in loading_msgs:
+                st.write(msg)
+                time.sleep(delay)
             meta, df, timing_df, bursts_df, scores_df, overall_score, emb_vecs = run_analysis(url, embedder, model)
             status.update(label="✅ Analysis Complete!", state="complete", expanded=False)
         
