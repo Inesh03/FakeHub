@@ -43,106 +43,106 @@ st.set_page_config(
     page_title="FakeHub — Fake Engagement Detector",
     page_icon="🛡️",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
-# Custom CSS — playful, premium dark mode
+# Custom CSS — minimal, premium red / black / white
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
 
     html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
-    .stApp { background: linear-gradient(160deg, #0a0a1a 0%, #111827 50%, #0d1b2a 100%); }
+    .stApp { background: #0a0a0a; }
 
-    /* === Animated gradient header === */
+    /* Hide default sidebar toggle */
+    [data-testid="stSidebarCollapsedControl"] { display: none; }
+
+    /* === Header === */
     .main-header {
-        font-size: 3.2rem; font-weight: 800; letter-spacing: -1px;
-        background: linear-gradient(270deg, #00C9FF, #92FE9D, #F0F, #FC0, #00C9FF);
-        background-size: 800% 800%;
-        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-        animation: gradientShift 6s ease infinite;
-        margin-bottom: 4px; line-height: 1.15;
+        font-size: 3.4rem; font-weight: 800; letter-spacing: -1.5px;
+        color: #FFFFFF; text-align: center;
+        margin-bottom: 0px; line-height: 1.1;
     }
-    @keyframes gradientShift {
-        0%   { background-position: 0% 50%; }
-        50%  { background-position: 100% 50%; }
-        100% { background-position: 0% 50%; }
-    }
+    .main-header span { color: #DC2626; }
     .sub-header {
-        font-size: 1.15rem; color: #94A3B8; margin-bottom: 28px;
-        letter-spacing: 0.3px;
+        font-size: 1.05rem; color: #737373; text-align: center;
+        margin-bottom: 36px; letter-spacing: 0.5px; font-weight: 300;
     }
 
-    /* === Glassmorphism section titles === */
+    /* === Section titles === */
     .section-title {
-        font-size: 1.6rem; font-weight: 700; color: #F1F5F9;
-        background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(14,165,233,0.1));
-        border-left: 4px solid #818CF8; border-radius: 0 12px 12px 0;
-        padding: 14px 20px; margin-top: 36px; margin-bottom: 18px;
-        backdrop-filter: blur(10px);
+        font-size: 1.45rem; font-weight: 700; color: #FAFAFA;
+        border-left: 3px solid #DC2626; border-radius: 0 8px 8px 0;
+        padding: 12px 18px; margin-top: 32px; margin-bottom: 16px;
+        background: rgba(220,38,38,0.06);
     }
 
-    /* === Glowing metric cards === */
+    /* === Metric cards === */
     [data-testid="stMetric"] {
-        background: linear-gradient(145deg, rgba(30,41,59,0.8), rgba(15,23,42,0.9));
-        border: 1px solid rgba(99,102,241,0.2); border-radius: 14px;
-        padding: 16px; box-shadow: 0 0 20px rgba(99,102,241,0.08);
-        transition: all 0.3s ease;
+        background: #111111; border: 1px solid #1f1f1f;
+        border-radius: 12px; padding: 16px;
+        transition: all 0.25s ease;
     }
     [data-testid="stMetric"]:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 0 30px rgba(99,102,241,0.2);
-        border-color: rgba(99,102,241,0.4);
+        border-color: #DC2626; transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(220,38,38,0.1);
     }
+    [data-testid="stMetricValue"] { color: #FFFFFF !important; }
+    [data-testid="stMetricLabel"] { color: #A3A3A3 !important; }
 
-    /* === Sidebar polish === */
-    [data-testid="stSidebar"] {
-        background: linear-gradient(180deg, #0F172A 0%, #1E1B4B 100%);
-        border-right: 1px solid rgba(99,102,241,0.15);
-    }
-    [data-testid="stSidebar"] .stButton > button {
-        background: linear-gradient(135deg, #6366F1, #8B5CF6) !important;
-        color: white !important; border: none !important; border-radius: 12px !important;
+    /* === Buttons === */
+    .stButton > button {
+        background: #DC2626 !important; color: #FFFFFF !important;
+        border: none !important; border-radius: 10px !important;
         font-weight: 700 !important; letter-spacing: 0.5px;
-        transition: all 0.3s ease !important;
+        transition: all 0.25s ease !important; padding: 0.6rem 2rem !important;
     }
-    [data-testid="stSidebar"] .stButton > button:hover {
-        transform: scale(1.03); box-shadow: 0 0 24px rgba(139,92,246,0.4) !important;
+    .stButton > button:hover {
+        background: #B91C1C !important;
+        box-shadow: 0 6px 20px rgba(220,38,38,0.3) !important;
+        transform: translateY(-1px) !important;
     }
 
     /* === Download button === */
     .stDownloadButton > button {
-        background: linear-gradient(135deg, #10B981, #059669) !important;
-        color: white !important; border: none !important; border-radius: 12px !important;
-        font-weight: 700 !important; font-size: 1rem !important;
-        padding: 12px 24px !important; transition: all 0.3s ease !important;
+        background: #171717 !important; color: #FAFAFA !important;
+        border: 1px solid #DC2626 !important; border-radius: 10px !important;
+        font-weight: 600 !important; transition: all 0.25s ease !important;
     }
     .stDownloadButton > button:hover {
-        transform: scale(1.02); box-shadow: 0 0 20px rgba(16,185,129,0.3) !important;
+        background: #DC2626 !important; border-color: #DC2626 !important;
+        box-shadow: 0 6px 20px rgba(220,38,38,0.25) !important;
     }
 
-    /* === Data tables === */
-    .stDataFrame { border-radius: 12px; overflow: hidden; }
+    /* === Tables === */
+    .stDataFrame { border-radius: 10px; overflow: hidden; }
 
     /* === Tabs === */
-    .stTabs [data-baseweb="tab"] {
-        font-weight: 600; color: #94A3B8; border-radius: 10px 10px 0 0;
-    }
-    .stTabs [aria-selected="true"] { color: #818CF8 !important; }
+    .stTabs [data-baseweb="tab"] { font-weight: 600; color: #737373; }
+    .stTabs [aria-selected="true"] { color: #DC2626 !important; }
 
     /* === Dividers === */
-    hr { border-color: rgba(99,102,241,0.15) !important; }
+    hr { border-color: #1f1f1f !important; }
 
-    /* === Status container === */
-    [data-testid="stStatusWidget"] { border-radius: 12px; }
+    /* === Status === */
+    [data-testid="stStatusWidget"] { border-radius: 10px; }
 
-    /* === Selectbox === */
+    /* === Inputs === */
+    .stTextInput > div > div > input {
+        background: #111111 !important; border: 1px solid #262626 !important;
+        border-radius: 10px !important; color: #FAFAFA !important;
+    }
+    .stTextInput > div > div > input:focus {
+        border-color: #DC2626 !important;
+        box-shadow: 0 0 0 1px #DC2626 !important;
+    }
     .stSelectbox > div > div { border-radius: 10px !important; }
+    .stRadio > div { gap: 0.8rem; }
 </style>
 """, unsafe_allow_html=True)
 
-st.markdown('<p class="main-header">🛡️ FakeHub</p>', unsafe_allow_html=True)
-st.markdown('<p class="sub-header">🔍 AI-powered bot detection · 🕸️ Graph ring analysis · ⚡ Real-time YouTube engagement scoring</p>', unsafe_allow_html=True)
+st.markdown('<p class="main-header">🛡️ Fake<span>Hub</span></p>', unsafe_allow_html=True)
+st.markdown('<p class="sub-header">Real-time AI bot detection · Graph ring analysis · YouTube engagement scoring</p>', unsafe_allow_html=True)
 
 
 # =============================================================================
@@ -171,12 +171,12 @@ def analyze_sentiment(texts, embedder):
 def dark_plotly_layout():
     return dict(
         paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(15,23,42,0.6)",
-        font=dict(color="#E2E8F0", family="Inter"),
-        title_font=dict(size=16, color="#F1F5F9"),
+        plot_bgcolor="rgba(17,17,17,0.8)",
+        font=dict(color="#D4D4D4", family="Inter"),
+        title_font=dict(size=15, color="#FAFAFA"),
         legend=dict(bgcolor="rgba(0,0,0,0)"),
-        xaxis=dict(gridcolor="rgba(99,102,241,0.1)"),
-        yaxis=dict(gridcolor="rgba(99,102,241,0.1)"),
+        xaxis=dict(gridcolor="rgba(255,255,255,0.05)"),
+        yaxis=dict(gridcolor="rgba(255,255,255,0.05)"),
     )
 
 
@@ -279,7 +279,7 @@ def render_dashboard(meta, df, timing_df, bursts_df, scores_df, overall_score, e
             fig_tl = px.area(bursts_df, x="published_at", y="comment_count",
                              labels={"published_at": "Time", "comment_count": "Comments/Min"},
                              title="⏱️ Comment Volume Over Time (1-min buckets)")
-            fig_tl.update_traces(fill='tozeroy', fillcolor='rgba(99,102,241,0.15)', line_color='#818CF8')
+            fig_tl.update_traces(fill='tozeroy', fillcolor='rgba(220,38,38,0.12)', line_color='#DC2626')
             fig_tl.update_layout(**dark_plotly_layout())
             bp = bursts_df[bursts_df["is_burst"] == True]
             if not bp.empty:
@@ -292,7 +292,7 @@ def render_dashboard(meta, df, timing_df, bursts_df, scores_df, overall_score, e
     with col_hist:
         st.markdown('<p class="section-title">📊 Bot Score Distribution</p>', unsafe_allow_html=True)
         fig_hist = px.histogram(scores_df, x="bot_score", nbins=30, color="risk_label",
-                                color_discrete_map={"🔴 High Risk": "#EF4444", "🟡 Suspicious": "#F59E0B", "🟢 Likely Human": "#10B981"},
+                                color_discrete_map={"🔴 High Risk": "#DC2626", "🟡 Suspicious": "#A3A3A3", "🟢 Likely Human": "#FAFAFA"},
                                 labels={"bot_score": "Bot Probability", "count": "Commenters"}, title="🤖 Distribution Among Commenters")
         fig_hist.update_layout(**dark_plotly_layout())
         st.plotly_chart(fig_hist, use_container_width=True, key=f"{prefix}_hist")
@@ -309,7 +309,7 @@ def render_dashboard(meta, df, timing_df, bursts_df, scores_df, overall_score, e
             sent_counts.columns = ["Sentiment", "Count"]
             fig_pie = px.pie(sent_counts, values="Count", names="Sentiment",
                              color="Sentiment",
-                             color_discrete_map={"Positive": "#10B981", "Negative": "#EF4444", "Neutral": "#64748B"},
+                             color_discrete_map={"Positive": "#FAFAFA", "Negative": "#DC2626", "Neutral": "#525252"},
                              title="Comment Sentiment Breakdown")
             fig_pie.update_traces(textfont_size=14, pull=[0.05]*len(sent_counts))
             fig_pie.update_layout(**dark_plotly_layout())
@@ -327,7 +327,7 @@ def render_dashboard(meta, df, timing_df, bursts_df, scores_df, overall_score, e
             # Reindex to proper day order
             heatmap_pivot = heatmap_pivot.reindex([d for d in day_order if d in heatmap_pivot.index])
             fig_heat = px.imshow(heatmap_pivot, labels={"x": "Hour of Day (UTC)", "y": "Day", "color": "Comments"},
-                                 color_continuous_scale="Purp", title="🕐 Comment Density by Hour & Day",
+                                 color_continuous_scale="Reds", title="🕐 Comment Density by Hour & Day",
                                  aspect="auto")
             fig_heat.update_layout(**dark_plotly_layout())
             st.plotly_chart(fig_heat, use_container_width=True, key=f"{prefix}_temporal")
@@ -354,7 +354,7 @@ def render_dashboard(meta, df, timing_df, bursts_df, scores_df, overall_score, e
         np.fill_diagonal(sim_matrix, 0)  # Remove self-similarity
         
         fig_sim = px.imshow(sim_matrix, x=names, y=names,
-                            color_continuous_scale="Viridis", title="🔗 Pairwise Text Similarity (Top Commenters)",
+                            color_continuous_scale="RdGy_r", title="🔗 Pairwise Text Similarity (Top Commenters)",
                             labels={"color": "Cosine Sim"}, aspect="auto")
         fig_sim.update_layout(**dark_plotly_layout(), height=500)
         st.plotly_chart(fig_sim, use_container_width=True, key=f"{prefix}_similarity")
@@ -401,7 +401,7 @@ def render_dashboard(meta, df, timing_df, bursts_df, scores_df, overall_score, e
             ).reset_index()
             fig_bar = px.bar(activity_summary, x="risk_label", y="total_comments",
                              color="risk_label",
-                             color_discrete_map={"🔴 High Risk": "#EF4444", "🟡 Suspicious": "#F59E0B", "🟢 Likely Human": "#10B981"},
+                             color_discrete_map={"🔴 High Risk": "#DC2626", "🟡 Suspicious": "#A3A3A3", "🟢 Likely Human": "#FAFAFA"},
                              text="unique_authors",
                              labels={"risk_label": "Risk Level", "total_comments": "Total Comments"},
                              title="Comment Volume by Risk Category")
@@ -522,34 +522,33 @@ TOP FLAGGED ACCOUNTS
 
 
 # =============================================================================
-# SIDEBAR
+# CENTERED INPUT AREA
 # =============================================================================
-with st.sidebar:
-    st.image("https://cdn-icons-png.flaticon.com/512/1384/1384060.png", width=60)
-    st.markdown("### Analysis Configuration")
-    
-    # Feature 3: Side-by-side comparison
-    mode = st.radio("Analysis Mode", ["Single Video", "Compare Two Videos"], horizontal=True)
-    
-    url = st.text_input("YouTube Video URL", placeholder="https://www.youtube.com/watch?v=...", key="url_1")
-    
+mode = st.radio("Analysis Mode", ["Single Video", "Compare Two Videos"], horizontal=True, label_visibility="collapsed")
+
+col_left, col_input, col_btn = st.columns([0.05, 3, 1])
+with col_input:
+    url = st.text_input("YouTube Video URL", placeholder="Paste a YouTube URL here...", key="url_1", label_visibility="collapsed")
     url2 = None
     if mode == "Compare Two Videos":
-        url2 = st.text_input("Second YouTube Video URL", placeholder="https://www.youtube.com/watch?v=...", key="url_2")
-    
-    analyze_btn = st.button("🔍 Analyze", type="primary", use_container_width=True)
-    st.divider()
-    st.markdown("""
-    **Indicators Monitored:**
-    - 🗣️ Linguistic NLP (LLM)
-    - ⏱️ Timing Regularity 
-    - 📈 Engagement Bursts
-    - 🕸️ Coordinated Graph Rings
-    - 💬 Sentiment Polarity
-    - 🔗 Text Similarity Clustering
-    - 🕐 Temporal Patterns
-    - 🆕 Account Activity Profiling
-    """)
+        url2 = st.text_input("Second URL", placeholder="Paste a second YouTube URL here...", key="url_2", label_visibility="collapsed")
+with col_btn:
+    analyze_btn = st.button("Analyze →", type="primary", use_container_width=True)
+
+st.markdown("")
+# Indicator pills
+st.markdown(
+    '<div style="text-align:center; margin-bottom:12px;">'
+    '<span style="background:#171717;border:1px solid #262626;border-radius:20px;padding:6px 14px;margin:4px;display:inline-block;color:#A3A3A3;font-size:0.82rem;">🗣️ NLP</span>'
+    '<span style="background:#171717;border:1px solid #262626;border-radius:20px;padding:6px 14px;margin:4px;display:inline-block;color:#A3A3A3;font-size:0.82rem;">⏱️ Timing</span>'
+    '<span style="background:#171717;border:1px solid #262626;border-radius:20px;padding:6px 14px;margin:4px;display:inline-block;color:#A3A3A3;font-size:0.82rem;">📈 Bursts</span>'
+    '<span style="background:#171717;border:1px solid #262626;border-radius:20px;padding:6px 14px;margin:4px;display:inline-block;color:#A3A3A3;font-size:0.82rem;">🕸️ Graph Rings</span>'
+    '<span style="background:#171717;border:1px solid #262626;border-radius:20px;padding:6px 14px;margin:4px;display:inline-block;color:#A3A3A3;font-size:0.82rem;">💬 Sentiment</span>'
+    '<span style="background:#171717;border:1px solid #262626;border-radius:20px;padding:6px 14px;margin:4px;display:inline-block;color:#A3A3A3;font-size:0.82rem;">🔗 Similarity</span>'
+    '<span style="background:#171717;border:1px solid #262626;border-radius:20px;padding:6px 14px;margin:4px;display:inline-block;color:#A3A3A3;font-size:0.82rem;">🕐 Temporal</span>'
+    '</div>', unsafe_allow_html=True
+)
+st.divider()
 
 
 # =============================================================================
