@@ -1,5 +1,6 @@
 import os
 import sys
+import numpy as np
 
 # Add project root to sys.path so we can import local modules
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -8,6 +9,9 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+from sklearn.metrics.pairwise import cosine_similarity
+from io import BytesIO
+from datetime import datetime
 
 from data_fetcher.youtube_fetcher import fetch_comments, fetch_video_metadata
 from models.train_nlp_model import preprocess_text
@@ -23,11 +27,11 @@ from graph.graph_viz import generate_network_html
 import joblib
 import logging
 import warnings
-import os
 
-# Suppress annoying HuggingFace/Torch logs in the Streamlit terminal
+# Suppress noisy logs
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 warnings.filterwarnings("ignore", category=FutureWarning)
+warnings.filterwarnings("ignore", category=UserWarning)
 logging.getLogger("transformers.modeling_utils").setLevel(logging.ERROR)
 
 from sentence_transformers import SentenceTransformer
@@ -36,137 +40,125 @@ import streamlit.components.v1 as components
 
 # --- Page Config ---
 st.set_page_config(
-    page_title="Fake Engagement Detector",
+    page_title="FakeHub — Fake Engagement Detector",
     page_icon="🛡️",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS for modern UI
+# Custom CSS
 st.markdown("""
 <style>
-    .reportview-container {
-        background: #0E1117;
-    }
+    .reportview-container { background: #0E1117; }
     .main-header {
-        font-size: 3rem;
-        font-weight: 800;
+        font-size: 3rem; font-weight: 800;
         background: -webkit-linear-gradient(45deg, #00C9FF, #92FE9D);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
         margin-bottom: 0px;
     }
-    .sub-header {
-        font-size: 1.2rem;
-        color: #A0AEC0;
-        margin-bottom: 30px;
-    }
-    .metric-card {
-        background-color: #1E293B;
-        border-radius: 10px;
-        padding: 20px;
-        text-align: center;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    }
+    .sub-header { font-size: 1.2rem; color: #A0AEC0; margin-bottom: 30px; }
     .section-title {
-        font-size: 1.8rem;
-        font-weight: 600;
-        color: #E2E8F0;
-        border-bottom: 2px solid #334155;
-        padding-bottom: 10px;
-        margin-top: 40px;
-        margin-bottom: 20px;
+        font-size: 1.8rem; font-weight: 600; color: #E2E8F0;
+        border-bottom: 2px solid #334155; padding-bottom: 10px;
+        margin-top: 40px; margin-bottom: 20px;
     }
 </style>
 """, unsafe_allow_html=True)
 
-st.markdown('<p class="main-header">🛡️ Fake Engagement Detector</p>', unsafe_allow_html=True)
+st.markdown('<p class="main-header">🛡️ FakeHub — Fake Engagement Detector</p>', unsafe_allow_html=True)
 st.markdown('<p class="sub-header">AI-powered behavioral analysis to detect bots, coordinated rings, and engagement bursts on YouTube.</p>', unsafe_allow_html=True)
 
-# --- Sidebar Input ---
-with st.sidebar:
-    st.image("https://cdn-icons-png.flaticon.com/512/1384/1384060.png", width=60) # YouTube icon
-    st.markdown("### Analysis Configuration")
-    url = st.text_input("YouTube Video URL", placeholder="https://www.youtube.com/watch?v=...")
-    analyze_btn = st.button("🔍 Analyze Video", type="primary", use_container_width=True)
-    st.divider()
-    st.markdown("""
-    **Indicators Monitored:**
-    - 🗣️ Linguistic NLP
-    - ⏱️ Timing Regularity 
-    - 📈 Engagement Bursts
-    - 🕸️ Coordinated Graph Postings
-    """)
 
-if analyze_btn and url:
-    with st.spinner("Fetching comments from YouTube API..."):
-        meta = fetch_video_metadata(url)
-        df   = fetch_comments(url, max_comments=500)
+# =============================================================================
+# HELPER: Sentiment Analysis (Feature 1)
+# =============================================================================
+def analyze_sentiment(texts, embedder):
+    """Simple rule + embedding similarity-based sentiment classification."""
+    positive_anchor = embedder.encode(["This is amazing, wonderful, great, excellent, love it"])
+    negative_anchor = embedder.encode(["This is terrible, awful, horrible, hate it, disgusting"])
+    neutral_anchor  = embedder.encode(["This is okay, normal, fine, nothing special"])
+    
+    text_embeddings = embedder.encode(texts)
+    
+    pos_sim = cosine_similarity(text_embeddings, positive_anchor).flatten()
+    neg_sim = cosine_similarity(text_embeddings, negative_anchor).flatten()
+    neu_sim = cosine_similarity(text_embeddings, neutral_anchor).flatten()
+    
+    sentiments = []
+    for p, n, ne in zip(pos_sim, neg_sim, neu_sim):
+        scores = {"Positive": p, "Negative": n, "Neutral": ne}
+        sentiments.append(max(scores, key=scores.get))
+    return sentiments
 
-    st.sidebar.success(f"✅ Fetched {len(df)} comments!")
 
-    # Video Meta Metrics
+# =============================================================================
+# HELPER: Run full analysis pipeline on one video
+# =============================================================================
+def run_analysis(url, embedder, model):
+    """Run the entire analysis pipeline for a single YouTube URL."""
+    meta = fetch_video_metadata(url)
+    df   = fetch_comments(url, max_comments=500)
+    
+    # NLP Bot Detection
+    clean_texts = [preprocess_text(t) for t in df["text"].fillna("").tolist()]
+    embedded_vectors = embedder.encode(clean_texts)
+    df["nlp_bot_prob"] = model.predict_proba(embedded_vectors)[:, 1]
+    
+    # Sentiment Analysis (Feature 1)
+    df["sentiment"] = analyze_sentiment(df["text"].fillna("").tolist(), embedder)
+    
+    # Timing
+    timing_df = analyze_timing(df)
+    bursts_df = detect_engagement_bursts(df, bucket_freq="1min", threshold_std=2.0)
+    
+    # Graph
+    build_interaction_graph(df)
+    graph_scores = get_graph_cluster_scores(df["author"].unique().tolist())
+    
+    # Score fusion
+    scores_df     = compute_per_commenter_scores(df, timing_df, graph_scores)
+    overall_score = compute_overall_authenticity(scores_df)
+    
+    return meta, df, timing_df, bursts_df, scores_df, overall_score, embedded_vectors
+
+
+# =============================================================================
+# HELPER: Render all visuals for one analysis result
+# =============================================================================
+def render_dashboard(meta, df, timing_df, bursts_df, scores_df, overall_score, embedded_vectors, embedder, model, prefix=""):
+    """Render the full dashboard for one video analysis."""
+    
+    # --- Video Meta ---
     m1, m2, m3, m4 = st.columns(4)
-    with m1:
-        st.info(f"**👁️ Views:** {meta.get('view_count', 0):,}")
-    with m2:
-        st.success(f"**👍 Likes:** {meta.get('like_count', 0):,}")
-    with m3:
-        st.warning(f"**💬 Comments:** {meta.get('comment_count', 0):,}")
-    with m4:
-        st.error(f"**📥 Fetched:** {len(df):,}")
-
-    st.markdown(f"**Video Title:** {meta.get('title', 'Unknown Video')} | **Channel:** {meta.get('channel', 'Unknown')}")
+    with m1: st.info(f"**👁️ Views:** {meta.get('view_count', 0):,}")
+    with m2: st.success(f"**👍 Likes:** {meta.get('like_count', 0):,}")
+    with m3: st.warning(f"**💬 Comments:** {meta.get('comment_count', 0):,}")
+    with m4: st.error(f"**📥 Fetched:** {len(df):,}")
+    st.markdown(f"**Video Title:** {meta.get('title', 'N/A')} | **Channel:** {meta.get('channel', 'N/A')}")
     st.divider()
 
-    with st.status("Running AI Behavioral Analysis Pipeline...", expanded=True) as status:
-        st.write("🤖 1/4: Running NLP bot detection (LLM Embeddings + Neural Net)...")
-        model = joblib.load("models/llm_mlp_model.pkl")
-        embedder = SentenceTransformer("all-MiniLM-L6-v2")
-        
-        clean_texts = [preprocess_text(t) for t in df["text"].fillna("").tolist()]
-        embedded_vectors = embedder.encode(clean_texts)
-        df["nlp_bot_prob"] = model.predict_proba(embedded_vectors)[:, 1]
-
-        st.write("⏱️ 2/4: Analyzing timing patterns & engagement bursts...")
-        timing_df = analyze_timing(df)
-        bursts_df = detect_engagement_bursts(df, bucket_freq="1min", threshold_std=2.0)
-
-        st.write("🕸️ 3/4: Building Neo4j interaction graph to find rings...")
-        build_interaction_graph(df)
-        graph_scores = get_graph_cluster_scores(df["author"].unique().tolist())
-
-        st.write("📊 4/4: Fusing behavioural signals into authenticity scores...")
-        scores_df   = compute_per_commenter_scores(df, timing_df, graph_scores)
-        overall_score = compute_overall_authenticity(scores_df)
-        status.update(label="Analysis Complete!", state="complete", expanded=False)
-
-    # --- Score Display ---
+    # --- Authenticity Gauge + Key Insights ---
     st.markdown('<p class="section-title">🎯 Overall Authenticity Assessment</p>', unsafe_allow_html=True)
-
     col_gauge, col_insights = st.columns([1, 1])
     
     with col_gauge:
         color = "#10B981" if overall_score >= 70 else ("#F59E0B" if overall_score >= 40 else "#EF4444")
         gauge = go.Figure(go.Indicator(
-            mode="gauge+number",
-            value=overall_score,
+            mode="gauge+number", value=overall_score,
             title={"text": "Authenticity Score", "font": {"size": 24, "color": "white"}},
             number={"font": {"size": 48, "color": color}, "suffix": "%"},
             gauge={
                 "axis": {"range": [0, 100], "tickwidth": 1, "tickcolor": "white"},
-                "bar":  {"color": color, "thickness": 0.3},
-                "bgcolor": "rgba(0,0,0,0)",
-                "borderwidth": 0,
+                "bar": {"color": color, "thickness": 0.3}, "bgcolor": "rgba(0,0,0,0)", "borderwidth": 0,
                 "steps": [
-                    {"range": [0, 40],   "color": "rgba(239, 68, 68, 0.2)"},
-                    {"range": [40, 70],  "color": "rgba(245, 158, 11, 0.2)"},
-                    {"range": [70, 100], "color": "rgba(16, 185, 129, 0.2)"},
+                    {"range": [0, 40], "color": "rgba(239,68,68,0.2)"},
+                    {"range": [40, 70], "color": "rgba(245,158,11,0.2)"},
+                    {"range": [70, 100], "color": "rgba(16,185,129,0.2)"},
                 ]
             }
         ))
-        gauge.update_layout(height=350, margin=dict(l=20, r=20, t=50, b=20), paper_bgcolor="rgba(0,0,0,0)", font={'color': "white"})
-        st.plotly_chart(gauge, use_container_width=True)
+        gauge.update_layout(height=350, margin=dict(l=20, r=20, t=50, b=20), paper_bgcolor="rgba(0,0,0,0)", font={"color": "white"})
+        st.plotly_chart(gauge, use_container_width=True, key=f"{prefix}_gauge")
 
     with col_insights:
         st.markdown("<br><br>", unsafe_allow_html=True)
@@ -174,52 +166,156 @@ if analyze_btn and url:
         high_risk_count = len(scores_df[scores_df["risk_label"] == "🔴 High Risk"])
         burst_count = len(bursts_df[bursts_df["is_burst"] == True]) if not bursts_df.empty else 0
         ring_count = len(scores_df[scores_df["graph_cluster_score"] > 0])
-        
         st.info(f"🚨 **{high_risk_count}** accounts flagged as High Risk.")
-        st.warning(f"📈 **{burst_count}** engagement bursts detected in timeline.")
-        st.error(f"🕸️ **{ring_count}** accounts detected in coordinated posting rings.")
+        st.warning(f"📈 **{burst_count}** engagement bursts detected.")
+        st.error(f"🕸️ **{ring_count}** accounts in coordinated posting rings.")
+        
+        # Sentiment insight (Feature 1)
+        if "sentiment" in df.columns:
+            bot_authors = scores_df[scores_df["risk_label"] == "🔴 High Risk"]["author"].tolist()
+            bot_comments = df[df["author"].isin(bot_authors)]
+            if len(bot_comments) > 0:
+                top_sent = bot_comments["sentiment"].value_counts().idxmax()
+                pct = round(bot_comments["sentiment"].value_counts(normalize=True).iloc[0] * 100)
+                st.success(f"💬 **{pct}%** of high-risk bot comments are **{top_sent}** sentiment.")
 
     st.divider()
 
+    # --- Row: Timeline + Histogram ---
     col_timeline, col_hist = st.columns([1.2, 1])
-    
     with col_timeline:
         st.markdown('<p class="section-title">📈 Engagement Bursts Timeline</p>', unsafe_allow_html=True)
         if not bursts_df.empty:
-            fig_timeline = px.line(
-                bursts_df, x="published_at", y="comment_count",
-                labels={"published_at": "Time", "comment_count": "Comments per Minute"},
-                title="Comment Volume over Time (1m buckets)"
-            )
-            fig_timeline.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0.2)")
-            burst_points = bursts_df[bursts_df["is_burst"] == True]
-            if not burst_points.empty:
-                fig_timeline.add_scatter(
-                    x=burst_points["published_at"], 
-                    y=burst_points["comment_count"],
-                    mode="markers",
-                    marker=dict(color="#EF4444", size=12, symbol="x"),
-                    name="Anomaly Burst"
-                )
-            st.plotly_chart(fig_timeline, use_container_width=True)
+            fig_tl = px.line(bursts_df, x="published_at", y="comment_count",
+                             labels={"published_at": "Time", "comment_count": "Comments/Min"},
+                             title="Comment Volume (1m buckets)")
+            fig_tl.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0.2)")
+            bp = bursts_df[bursts_df["is_burst"] == True]
+            if not bp.empty:
+                fig_tl.add_scatter(x=bp["published_at"], y=bp["comment_count"],
+                                   mode="markers", marker=dict(color="#EF4444", size=12, symbol="x"), name="Anomaly Burst")
+            st.plotly_chart(fig_tl, use_container_width=True, key=f"{prefix}_timeline")
         else:
-            st.info("Not enough data to plot an timeline.")
+            st.info("Not enough data for timeline.")
 
     with col_hist:
         st.markdown('<p class="section-title">📊 Bot Score Distribution</p>', unsafe_allow_html=True)
-        fig_hist = px.histogram(
-            scores_df, x="bot_score", nbins=30,
-            color="risk_label",
-            color_discrete_map={
-                "🔴 High Risk": "#EF4444",
-                "🟡 Suspicious": "#F59E0B",
-                "🟢 Likely Human": "#10B981"
-            },
-            labels={"bot_score": "Bot Probability Score", "count": "Commenters"},
-            title="Distribution among Commenters"
-        )
+        fig_hist = px.histogram(scores_df, x="bot_score", nbins=30, color="risk_label",
+                                color_discrete_map={"🔴 High Risk": "#EF4444", "🟡 Suspicious": "#F59E0B", "🟢 Likely Human": "#10B981"},
+                                labels={"bot_score": "Bot Probability", "count": "Commenters"}, title="Distribution among Commenters")
         fig_hist.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0.2)")
-        st.plotly_chart(fig_hist, use_container_width=True)
+        st.plotly_chart(fig_hist, use_container_width=True, key=f"{prefix}_hist")
+
+    st.divider()
+
+    # --- Row: Sentiment Pie + Temporal Heatmap (Features 1 & 5) ---
+    col_sent, col_temp = st.columns([1, 1.3])
+    
+    with col_sent:
+        st.markdown('<p class="section-title">💬 Sentiment Polarity Analysis</p>', unsafe_allow_html=True)
+        if "sentiment" in df.columns:
+            sent_counts = df["sentiment"].value_counts().reset_index()
+            sent_counts.columns = ["Sentiment", "Count"]
+            fig_pie = px.pie(sent_counts, values="Count", names="Sentiment",
+                             color="Sentiment",
+                             color_discrete_map={"Positive": "#10B981", "Negative": "#EF4444", "Neutral": "#64748B"},
+                             title="Comment Sentiment Breakdown")
+            fig_pie.update_layout(paper_bgcolor="rgba(0,0,0,0)", font={"color": "white"})
+            st.plotly_chart(fig_pie, use_container_width=True, key=f"{prefix}_sentiment")
+    
+    with col_temp:
+        st.markdown('<p class="section-title">🕐 Temporal Activity Heatmap</p>', unsafe_allow_html=True)
+        if "published_at" in df.columns:
+            temp_df = df.copy()
+            temp_df["hour"] = temp_df["published_at"].dt.hour
+            temp_df["day_of_week"] = temp_df["published_at"].dt.day_name()
+            day_order = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+            heatmap_data = temp_df.groupby(["day_of_week", "hour"]).size().reset_index(name="count")
+            heatmap_pivot = heatmap_data.pivot(index="day_of_week", columns="hour", values="count").fillna(0)
+            # Reindex to proper day order
+            heatmap_pivot = heatmap_pivot.reindex([d for d in day_order if d in heatmap_pivot.index])
+            fig_heat = px.imshow(heatmap_pivot, labels={"x": "Hour of Day (UTC)", "y": "Day", "color": "Comments"},
+                                 color_continuous_scale="YlOrRd", title="Comment Density by Hour & Day",
+                                 aspect="auto")
+            fig_heat.update_layout(paper_bgcolor="rgba(0,0,0,0)", font={"color": "white"})
+            st.plotly_chart(fig_heat, use_container_width=True, key=f"{prefix}_temporal")
+
+    st.divider()
+
+    # --- User Similarity Heatmap (Feature 4) ---
+    st.markdown('<p class="section-title">🔗 User Similarity Clustering (Cosine Similarity)</p>', unsafe_allow_html=True)
+    st.markdown("Accounts posting **highly similar** text (bright cells) may be copy-paste bot rings.")
+    
+    # Get top commenters by volume for a readable heatmap
+    top_authors = scores_df.nlargest(min(20, len(scores_df)), "comment_count")["author"].tolist()
+    author_embeddings = {}
+    for author in top_authors:
+        author_texts = df[df["author"] == author]["text"].fillna("").tolist()
+        if author_texts:
+            vecs = embedder.encode([preprocess_text(t) for t in author_texts])
+            author_embeddings[author] = vecs.mean(axis=0)
+    
+    if len(author_embeddings) > 2:
+        names = list(author_embeddings.keys())
+        matrix = np.array([author_embeddings[n] for n in names])
+        sim_matrix = cosine_similarity(matrix)
+        np.fill_diagonal(sim_matrix, 0)  # Remove self-similarity
+        
+        fig_sim = px.imshow(sim_matrix, x=names, y=names,
+                            color_continuous_scale="Plasma", title="Pairwise Text Similarity (Top Commenters)",
+                            labels={"color": "Cosine Sim"}, aspect="auto")
+        fig_sim.update_layout(paper_bgcolor="rgba(0,0,0,0)", font={"color": "white"}, height=500)
+        st.plotly_chart(fig_sim, use_container_width=True, key=f"{prefix}_similarity")
+    else:
+        st.info("Not enough distinct authors for a similarity matrix.")
+
+    st.divider()
+
+    # --- Account Age Analysis (Feature 6) ---
+    st.markdown('<p class="section-title">🆕 Account Age Analysis</p>', unsafe_allow_html=True)
+    if "published_at" in df.columns:
+        # Approximate account age from earliest comment timestamp
+        author_first_seen = df.groupby("author")["published_at"].min().reset_index()
+        author_first_seen.columns = ["author", "first_seen"]
+        # Merge with scores
+        age_df = scores_df.merge(author_first_seen, on="author", how="left")
+        
+        # We can also check if multiple high-risk users appeared at roughly the same time
+        high_risk_authors = age_df[age_df["risk_label"] == "🔴 High Risk"]
+        
+        col_age1, col_age2 = st.columns([1, 1])
+        with col_age1:
+            st.markdown("**First Appearance of Flagged Accounts on This Video**")
+            if len(high_risk_authors) > 0:
+                fig_scatter = px.scatter(
+                    high_risk_authors, x="first_seen", y="bot_score",
+                    size="comment_count", color="risk_label",
+                    color_discrete_map={"🔴 High Risk": "#EF4444"},
+                    hover_data=["author", "comment_count"],
+                    labels={"first_seen": "First Comment Time", "bot_score": "Bot Score"},
+                    title="When Did Suspicious Accounts First Appear?"
+                )
+                fig_scatter.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0.2)", font={"color": "white"})
+                st.plotly_chart(fig_scatter, use_container_width=True, key=f"{prefix}_age_scatter")
+            else:
+                st.success("No high-risk accounts detected! 🎉")
+        
+        with col_age2:
+            st.markdown("**Account Activity Concentration**")
+            # Show how many comments high-risk vs normal users posted
+            activity_summary = scores_df.groupby("risk_label").agg(
+                total_comments=("comment_count", "sum"),
+                unique_authors=("author", "nunique")
+            ).reset_index()
+            fig_bar = px.bar(activity_summary, x="risk_label", y="total_comments",
+                             color="risk_label",
+                             color_discrete_map={"🔴 High Risk": "#EF4444", "🟡 Suspicious": "#F59E0B", "🟢 Likely Human": "#10B981"},
+                             text="unique_authors",
+                             labels={"risk_label": "Risk Level", "total_comments": "Total Comments"},
+                             title="Comment Volume by Risk Category")
+            fig_bar.update_traces(texttemplate='%{text} users', textposition='outside')
+            fig_bar.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0.2)", font={"color": "white"}, showlegend=False)
+            st.plotly_chart(fig_bar, use_container_width=True, key=f"{prefix}_age_bar")
 
     st.divider()
 
@@ -229,83 +325,189 @@ if analyze_btn and url:
         "author", "comment_count", "nlp_bot_prob",
         "timing_risk", "graph_cluster_score", "bot_score", "risk_label", "anomaly_explanation"
     ]].rename(columns={
-        "author":               "Author",
-        "comment_count":        "Comments",
-        "nlp_bot_prob":         "NLP Score",
-        "timing_risk":          "Timing Risk",
-        "graph_cluster_score":  "Graph Risk",
-        "bot_score":            "Bot Score",
-        "risk_label":           "Risk Level",
-        "anomaly_explanation":  "Anomaly Explanation"
+        "author": "Author", "comment_count": "Comments", "nlp_bot_prob": "NLP Score",
+        "timing_risk": "Timing Risk", "graph_cluster_score": "Graph Risk",
+        "bot_score": "Bot Score", "risk_label": "Risk Level", "anomaly_explanation": "Anomaly Explanation"
     })
     for col in ["NLP Score", "Timing Risk", "Bot Score"]:
         display_df[col] = display_df[col].round(3)
-    
-    st.dataframe(
-        display_df, 
-        use_container_width=True, 
-        height=350,
-        column_config={
-            "Anomaly Explanation": st.column_config.TextColumn("Anomaly Explanation", width="large")
-        }
-    )
+    st.dataframe(display_df, use_container_width=True, height=350,
+                 column_config={"Anomaly Explanation": st.column_config.TextColumn("Anomaly Explanation", width="large")})
 
-    # --- Explainable AI (LIME) ---
-    st.markdown('<p class="section-title">🧠 Explainable AI (XAI) - Local Interpretability</p>', unsafe_allow_html=True)
+    # --- LIME XAI ---
+    st.markdown('<p class="section-title">🧠 Explainable AI (XAI) — LIME Interpretability</p>', unsafe_allow_html=True)
     st.markdown("Select an author to inspect why the NLP engine assigned them their specific Bot Probability.")
-    
     c1, c2 = st.columns([1, 2])
-    
     suspicious_authors = display_df[display_df["Risk Level"] != "🟢 Likely Human"]["Author"].tolist()
     all_authors = display_df["Author"].tolist()
     
     with c1:
-        selected_author = st.selectbox(
-            "1. Select an author:", 
-            options=suspicious_authors if suspicious_authors else all_authors
-        )
+        selected_author = st.selectbox("1. Select an author:", options=suspicious_authors if suspicious_authors else all_authors, key=f"{prefix}_lime_author")
         if selected_author:
             author_comments = df[df["author"] == selected_author]["text"].tolist()
-            selected_comment = st.selectbox("2. Select a comment:", options=author_comments)
-            
+            selected_comment = st.selectbox("2. Select a comment:", options=author_comments, key=f"{prefix}_lime_comment")
+    
     with c2:
         if selected_author and selected_comment:
             if len(str(selected_comment).split()) < 2:
-                st.warning("⚠️ This comment is too short for LIME to generate a meaningful AI feature breakdown.")
+                st.warning("⚠️ Comment too short for LIME analysis.")
             else:
-                with st.spinner("Generating LIME Explanation for this comment..."):
+                with st.spinner("Generating LIME Explanation..."):
                     try:
                         explainer = LimeTextExplainer(class_names=["Human", "Bot"])
                         def predictor(texts):
                             cleaned = [preprocess_text(t) for t in texts]
-                            # Encode text dynamically with the LLM embedder for LIME
                             vecs = embedder.encode(cleaned)
                             return model.predict_proba(vecs)
-                        
-                        exp = explainer.explain_instance(
-                            selected_comment, 
-                            predictor, 
-                            num_features=10
-                        )
-                        
-                        # --- FIX LIME DARK MODE VISIBILITY ---
+                        exp = explainer.explain_instance(selected_comment, predictor, num_features=10)
                         lime_html = exp.as_html()
                         styled_html = f"""
-                        <div style="background-color: #FFFFFF; padding: 20px; border-radius: 10px; color: black; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                            <h4 style="margin-top:0; color:#1E293B; font-family: sans-serif;">LIME Feature Importance</h4>
+                        <div style="background-color:#FFF;padding:20px;border-radius:10px;color:black;box-shadow:0 4px 6px rgba(0,0,0,0.1);">
+                            <h4 style="margin-top:0;color:#1E293B;">LIME Feature Importance</h4>
                             {lime_html}
-                        </div>
-                        """
+                        </div>"""
                         components.html(styled_html, height=450, scrolling=True)
-                    except Exception as e:
-                        st.error("⚠️ LIME could not process this comment. It likely contains only special characters or emojis which the explainer cannot perturb.")
+                    except Exception:
+                        st.error("⚠️ LIME could not process this comment.")
 
+    # --- Network Graph ---
     st.markdown('<p class="section-title">🕸️ Interactive Network Graph (Neo4j)</p>', unsafe_allow_html=True)
-    st.markdown("This 3D physics-based graph shows accounts targeting the video. Suspicious users (part of rings or high-volume) are highlighted in **Orange**.")
-    
-    with st.spinner("Rendering Neo4j graph..."):
-        # Generate the HTML from our Neo4j database
+    st.markdown("Suspicious users (rings/high-volume) are in **Orange**. Organic users in **Green**.")
+    with st.spinner("Rendering graph..."):
         graph_html = generate_network_html(suspicious_authors=set(suspicious_authors))
-        
-        # Display it natively in Streamlit
         components.html(graph_html, height=620, scrolling=False)
+
+    # --- PDF Export (Feature 2) ---
+    st.divider()
+    st.markdown('<p class="section-title">📄 Export Report</p>', unsafe_allow_html=True)
+    
+    report_text = f"""
+FAKEHUB — ENGAGEMENT AUTHENTICITY REPORT
+==========================================
+Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+
+VIDEO INFORMATION
+  Title:    {meta.get('title', 'N/A')}
+  Channel:  {meta.get('channel', 'N/A')}
+  Views:    {meta.get('view_count', 0):,}
+  Likes:    {meta.get('like_count', 0):,}
+  Comments: {meta.get('comment_count', 0):,}
+  Fetched:  {len(df)}
+
+OVERALL AUTHENTICITY SCORE: {overall_score}%
+
+RISK BREAKDOWN
+  High Risk Accounts:      {len(scores_df[scores_df['risk_label'] == '🔴 High Risk'])}
+  Suspicious Accounts:     {len(scores_df[scores_df['risk_label'] == '🟡 Suspicious'])}
+  Likely Human Accounts:   {len(scores_df[scores_df['risk_label'] == '🟢 Likely Human'])}
+  Coordinated Ring Members:{len(scores_df[scores_df['graph_cluster_score'] > 0])}
+  Engagement Bursts:       {len(bursts_df[bursts_df['is_burst'] == True]) if not bursts_df.empty else 0}
+
+SENTIMENT ANALYSIS
+"""
+    if "sentiment" in df.columns:
+        for sent, count in df["sentiment"].value_counts().items():
+            report_text += f"  {sent}: {count} comments ({round(count/len(df)*100)}%)\n"
+    
+    report_text += f"""
+TOP FLAGGED ACCOUNTS
+{'='*50}
+"""
+    for _, row in scores_df.nlargest(10, "bot_score").iterrows():
+        report_text += f"  {row['author']:<30} Bot Score: {row['bot_score']:.3f}  Risk: {row['risk_label']}\n"
+        report_text += f"    → {row['anomaly_explanation']}\n\n"
+    
+    st.download_button(
+        label="📥 Download Full Report (.txt)",
+        data=report_text,
+        file_name=f"fakehub_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
+        mime="text/plain",
+        use_container_width=True,
+        key=f"{prefix}_download"
+    )
+    
+    return display_df
+
+
+# =============================================================================
+# SIDEBAR
+# =============================================================================
+with st.sidebar:
+    st.image("https://cdn-icons-png.flaticon.com/512/1384/1384060.png", width=60)
+    st.markdown("### Analysis Configuration")
+    
+    # Feature 3: Side-by-side comparison
+    mode = st.radio("Analysis Mode", ["Single Video", "Compare Two Videos"], horizontal=True)
+    
+    url = st.text_input("YouTube Video URL", placeholder="https://www.youtube.com/watch?v=...", key="url_1")
+    
+    url2 = None
+    if mode == "Compare Two Videos":
+        url2 = st.text_input("Second YouTube Video URL", placeholder="https://www.youtube.com/watch?v=...", key="url_2")
+    
+    analyze_btn = st.button("🔍 Analyze", type="primary", use_container_width=True)
+    st.divider()
+    st.markdown("""
+    **Indicators Monitored:**
+    - 🗣️ Linguistic NLP (LLM)
+    - ⏱️ Timing Regularity 
+    - 📈 Engagement Bursts
+    - 🕸️ Coordinated Graph Rings
+    - 💬 Sentiment Polarity
+    - 🔗 Text Similarity Clustering
+    - 🕐 Temporal Patterns
+    - 🆕 Account Activity Profiling
+    """)
+
+
+# =============================================================================
+# MAIN EXECUTION
+# =============================================================================
+if analyze_btn and url:
+    # Load models once
+    model = joblib.load("models/llm_mlp_model.pkl")
+    embedder = SentenceTransformer("all-MiniLM-L6-v2")
+    
+    if mode == "Single Video":
+        with st.status("Running AI Behavioral Analysis Pipeline...", expanded=True) as status:
+            st.write("🤖 1/5: Running NLP bot detection (LLM Embeddings + Neural Net)...")
+            st.write("💬 2/5: Analyzing sentiment polarity...")
+            st.write("⏱️ 3/5: Analyzing timing patterns & engagement bursts...")
+            st.write("🕸️ 4/5: Building Neo4j interaction graph...")
+            st.write("📊 5/5: Fusing behavioural signals into scores...")
+            meta, df, timing_df, bursts_df, scores_df, overall_score, emb_vecs = run_analysis(url, embedder, model)
+            status.update(label="✅ Analysis Complete!", state="complete", expanded=False)
+        
+        render_dashboard(meta, df, timing_df, bursts_df, scores_df, overall_score, emb_vecs, embedder, model, prefix="single")
+    
+    elif mode == "Compare Two Videos" and url2:
+        # Feature 3: Side by side comparison
+        with st.status("Analyzing Video 1...", expanded=True) as s1:
+            meta1, df1, t1, b1, s_df1, score1, ev1 = run_analysis(url, embedder, model)
+            s1.update(label="✅ Video 1 Done!", state="complete", expanded=False)
+        
+        with st.status("Analyzing Video 2...", expanded=True) as s2:
+            meta2, df2, t2, b2, s_df2, score2, ev2 = run_analysis(url2, embedder, model)
+            s2.update(label="✅ Video 2 Done!", state="complete", expanded=False)
+        
+        # Comparison Header
+        st.markdown('<p class="section-title">⚖️ Side-by-Side Comparison</p>', unsafe_allow_html=True)
+        comp1, comp2 = st.columns(2)
+        with comp1:
+            color1 = "#10B981" if score1 >= 70 else ("#F59E0B" if score1 >= 40 else "#EF4444")
+            st.metric("Video 1 Authenticity", f"{score1}%")
+            st.caption(meta1.get("title", "N/A"))
+        with comp2:
+            color2 = "#10B981" if score2 >= 70 else ("#F59E0B" if score2 >= 40 else "#EF4444")
+            st.metric("Video 2 Authenticity", f"{score2}%")
+            st.caption(meta2.get("title", "N/A"))
+        
+        st.divider()
+        
+        tab1, tab2 = st.tabs([f"📹 {meta1.get('title', 'Video 1')[:40]}...", f"📹 {meta2.get('title', 'Video 2')[:40]}..."])
+        with tab1:
+            render_dashboard(meta1, df1, t1, b1, s_df1, score1, ev1, embedder, model, prefix="v1")
+        with tab2:
+            render_dashboard(meta2, df2, t2, b2, s_df2, score2, ev2, embedder, model, prefix="v2")
+    else:
+        st.warning("Please enter a second YouTube URL for comparison mode.")
