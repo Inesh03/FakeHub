@@ -2,6 +2,11 @@ import os
 import sys
 import time
 import numpy as np
+from dotenv import load_dotenv
+
+# Load environment variables (must be first, before any HF imports)
+load_dotenv()
+os.environ["HF_TOKEN"] = os.getenv("HF_TOKEN", "")
 
 # Add project root to sys.path so we can import local modules
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
